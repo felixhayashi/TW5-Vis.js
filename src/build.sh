@@ -2,7 +2,7 @@
 # this script will compile the vis library into a tw-plugin
 
 distPath="../dist/felixhayashi/vis/"    # Path to dist-files
-modulePath="$:/plugins/tiddlywiki/vis"  # module path
+modulePath="$:/plugins/felixhayashi/vis"  # module path
 cssSrc="vis/vis.css"                    # path to the css
 cssOut="$distPath/files/vis.css"        # outpath of the css
 cd vis; images=(img/*/*); cd ..         # array of images used by vis relative to css dir

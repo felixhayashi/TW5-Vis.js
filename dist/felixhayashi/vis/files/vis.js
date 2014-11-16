@@ -24,55 +24,55 @@
  */
 
 (function webpackUniversalModuleDefinition(root, factory) {
-	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory();
-	else if(typeof define === 'function' && define.amd)
-		define(factory);
-	else if(typeof exports === 'object')
-		exports["vis"] = factory();
-	else
-		root["vis"] = factory();
+  if(typeof exports === 'object' && typeof module === 'object')
+    module.exports = factory();
+  else if(typeof define === 'function' && define.amd)
+    define(factory);
+  else if(typeof exports === 'object')
+    exports["vis"] = factory();
+  else
+    root["vis"] = factory();
 })(this, function() {
 return /******/ (function(modules) { // webpackBootstrap
-/******/ 	// The module cache
-/******/ 	var installedModules = {};
+/******/  // The module cache
+/******/  var installedModules = {};
 /******/
-/******/ 	// The require function
-/******/ 	function __webpack_require__(moduleId) {
+/******/  // The require function
+/******/  function __webpack_require__(moduleId) {
 /******/
-/******/ 		// Check if module is in cache
-/******/ 		if(installedModules[moduleId])
-/******/ 			return installedModules[moduleId].exports;
+/******/    // Check if module is in cache
+/******/    if(installedModules[moduleId])
+/******/      return installedModules[moduleId].exports;
 /******/
-/******/ 		// Create a new module (and put it into the cache)
-/******/ 		var module = installedModules[moduleId] = {
-/******/ 			exports: {},
-/******/ 			id: moduleId,
-/******/ 			loaded: false
-/******/ 		};
+/******/    // Create a new module (and put it into the cache)
+/******/    var module = installedModules[moduleId] = {
+/******/      exports: {},
+/******/      id: moduleId,
+/******/      loaded: false
+/******/    };
 /******/
-/******/ 		// Execute the module function
-/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/    // Execute the module function
+/******/    modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
 /******/
-/******/ 		// Flag the module as loaded
-/******/ 		module.loaded = true;
+/******/    // Flag the module as loaded
+/******/    module.loaded = true;
 /******/
-/******/ 		// Return the exports of the module
-/******/ 		return module.exports;
-/******/ 	}
+/******/    // Return the exports of the module
+/******/    return module.exports;
+/******/  }
 /******/
 /******/
-/******/ 	// expose the modules object (__webpack_modules__)
-/******/ 	__webpack_require__.m = modules;
+/******/  // expose the modules object (__webpack_modules__)
+/******/  __webpack_require__.m = modules;
 /******/
-/******/ 	// expose the module cache
-/******/ 	__webpack_require__.c = installedModules;
+/******/  // expose the module cache
+/******/  __webpack_require__.c = installedModules;
 /******/
-/******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "";
+/******/  // __webpack_public_path__
+/******/  __webpack_require__.p = "";
 /******/
-/******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(0);
+/******/  // Load entry module and return exports
+/******/  return __webpack_require__(0);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -4343,7 +4343,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /***/ function(module, exports, __webpack_require__) {
 
   function webpackContext(req) {
-  	throw new Error("Cannot find module '" + req + "'.");
+    throw new Error("Cannot find module '" + req + "'.");
   }
   webpackContext.keys = function() { return []; };
   webpackContext.resolve = webpackContext;
@@ -4356,14 +4356,14 @@ return /******/ (function(modules) { // webpackBootstrap
 /***/ function(module, exports, __webpack_require__) {
 
   module.exports = function(module) {
-  	if(!module.webpackPolyfill) {
-  		module.deprecate = function() {};
-  		module.paths = [];
-  		// module.parent = undefined by default
-  		module.children = [];
-  		module.webpackPolyfill = 1;
-  	}
-  	return module;
+    if(!module.webpackPolyfill) {
+      module.deprecate = function() {};
+      module.paths = [];
+      // module.parent = undefined by default
+      module.children = [];
+      module.webpackPolyfill = 1;
+    }
+    return module;
   }
 
 
@@ -25637,12 +25637,12 @@ return /******/ (function(modules) { // webpackBootstrap
       };
       
       img.onerror = function () {
-  	  this.src = brokenUrl;
-  	  if (images.callback) {
-  		images.callback(this);
-  	  }
-  	};
-  	
+      this.src = brokenUrl;
+      if (images.callback) {
+      images.callback(this);
+      }
+    };
+    
       img.src = url;
     }
 
@@ -33688,3 +33688,5 @@ return /******/ (function(modules) { // webpackBootstrap
 /***/ }
 /******/ ])
 });
+
+export.vis = vis;

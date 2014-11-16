@@ -251,7 +251,7 @@
 }
 
 .vis.timeline .item .delete {
-  background: url(<<datauri "$:/plugins/tiddlywiki/visimg/timeline/delete.png" >>) no-repeat top center;
+  background: url(<<datauri "$:/plugins/felixhayashi/visimg/timeline/delete.png" >>) no-repeat top center;
   position: absolute;
   width: 24px;
   height: 24px;
@@ -597,7 +597,7 @@ div.network-manipulationDiv {
   background: -o-linear-gradient(top,  #ffffff 0%,#fcfcfc 48%,#fafafa 50%,#fcfcfc 100%); /* Opera 11.10+ */
   background: -ms-linear-gradient(top,  #ffffff 0%,#fcfcfc 48%,#fafafa 50%,#fcfcfc 100%); /* IE10+ */
   background: linear-gradient(to bottom,  #ffffff 0%,#fcfcfc 48%,#fafafa 50%,#fcfcfc 100%); /* W3C */
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr=<<datauri "$:/plugins/tiddlywiki/vis#fcfcfc" >>,GradientType=0 ); /* IE6-9 */
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr=<<datauri "$:/plugins/felixhayashi/vis#fcfcfc" >>,GradientType=0 ); /* IE6-9 */
 
   position: absolute;
   left: 0;
@@ -623,7 +623,7 @@ div.network-manipulation-closeDiv {
 
   background-position: 20px 3px;
   background-repeat: no-repeat;
-  background-image: url(<<datauri "$:/plugins/tiddlywiki/visimg/network/cross.png" >>);
+  background-image: url(<<datauri "$:/plugins/felixhayashi/visimg/network/cross.png" >>);
   cursor: pointer;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -667,7 +667,7 @@ span.network-manipulationUI:active {
 }
 
 span.network-manipulationUI.back {
-  background-image: url(<<datauri "$:/plugins/tiddlywiki/visimg/network/backIcon.png" >>);
+  background-image: url(<<datauri "$:/plugins/felixhayashi/visimg/network/backIcon.png" >>);
 }
 
 span.network-manipulationUI.none:hover {
@@ -686,11 +686,11 @@ span.network-manipulationUI.notification{
 }
 
 span.network-manipulationUI.add {
-  background-image: url(<<datauri "$:/plugins/tiddlywiki/visimg/network/addNodeIcon.png" >>);
+  background-image: url(<<datauri "$:/plugins/felixhayashi/visimg/network/addNodeIcon.png" >>);
 }
 
 span.network-manipulationUI.edit {
-  background-image: url(<<datauri "$:/plugins/tiddlywiki/visimg/network/editIcon.png" >>);
+  background-image: url(<<datauri "$:/plugins/felixhayashi/visimg/network/editIcon.png" >>);
 }
 
 span.network-manipulationUI.edit.editmode {
@@ -701,11 +701,11 @@ span.network-manipulationUI.edit.editmode {
 }
 
 span.network-manipulationUI.connect {
-  background-image: url(<<datauri "$:/plugins/tiddlywiki/visimg/network/connectIcon.png" >>);
+  background-image: url(<<datauri "$:/plugins/felixhayashi/visimg/network/connectIcon.png" >>);
 }
 
 span.network-manipulationUI.delete {
-  background-image: url(<<datauri "$:/plugins/tiddlywiki/visimg/network/deleteIcon.png" >>);
+  background-image: url(<<datauri "$:/plugins/felixhayashi/visimg/network/deleteIcon.png" >>);
 }
 /* top right bottom left */
 span.network-manipulationLabel {
@@ -754,37 +754,37 @@ div.network-navigation:active {
 }
 
 div.network-navigation.up {
-    background-image: url(<<datauri "$:/plugins/tiddlywiki/visimg/network/upArrow.png" >>);
+    background-image: url(<<datauri "$:/plugins/felixhayashi/visimg/network/upArrow.png" >>);
     bottom:50px;
     left:55px;
 }
 div.network-navigation.down {
-    background-image: url(<<datauri "$:/plugins/tiddlywiki/visimg/network/downArrow.png" >>);
+    background-image: url(<<datauri "$:/plugins/felixhayashi/visimg/network/downArrow.png" >>);
     bottom:10px;
     left:55px;
 }
 div.network-navigation.left {
-    background-image: url(<<datauri "$:/plugins/tiddlywiki/visimg/network/leftArrow.png" >>);
+    background-image: url(<<datauri "$:/plugins/felixhayashi/visimg/network/leftArrow.png" >>);
     bottom:10px;
     left:15px;
 }
 div.network-navigation.right {
-    background-image: url(<<datauri "$:/plugins/tiddlywiki/visimg/network/rightArrow.png" >>);
+    background-image: url(<<datauri "$:/plugins/felixhayashi/visimg/network/rightArrow.png" >>);
     bottom:10px;
     left:95px;
 }
 div.network-navigation.zoomIn {
-    background-image: url(<<datauri "$:/plugins/tiddlywiki/visimg/network/plus.png" >>);
+    background-image: url(<<datauri "$:/plugins/felixhayashi/visimg/network/plus.png" >>);
     bottom:10px;
     right:15px;
 }
 div.network-navigation.zoomOut {
-    background-image: url(<<datauri "$:/plugins/tiddlywiki/visimg/network/minus.png" >>);
+    background-image: url(<<datauri "$:/plugins/felixhayashi/visimg/network/minus.png" >>);
     bottom:10px;
     right:55px;
 }
 div.network-navigation.zoomExtends {
-    background-image: url(<<datauri "$:/plugins/tiddlywiki/visimg/network/zoomExtends.png" >>);
+    background-image: url(<<datauri "$:/plugins/felixhayashi/visimg/network/zoomExtends.png" >>);
     bottom:50px;
     right:15px;
 }
