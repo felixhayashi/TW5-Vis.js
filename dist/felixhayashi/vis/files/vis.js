@@ -33688,5 +33688,3 @@ return /******/ (function(modules) { // webpackBootstrap
 /***/ }
 /******/ ])
 });
-
-export.vis = vis;
