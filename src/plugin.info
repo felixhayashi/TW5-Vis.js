@@ -1,0 +1,11 @@
+{
+  "title": "$:/plugins/tiddlywiki/vis",
+  "description": "vis.js plugin for TiddlyWiki5",
+  "author": "Felix Küppers",
+  "version": "3.6.5-SNAPSHOT (2014-11-13, develop-branch)",
+  "core-version": ">=5.0.0",
+  "source": "https://github.com/almende/vis/tree/develop",
+  "type": "application/json",
+  "plugin-type": "plugin",
+  "list": "license"
+}
