@@ -30,13 +30,13 @@ done;
 printf '
     {
       "file": "vis.css", "fields": {
-        "title": "%s/vis.min.css",
+        "title": "%s/vis.css",
         "type": "text/vnd.tiddlywiki",
         "tags": [ "$:/tags/stylesheet" ]
     }},
     {
-      "file": "vis.js", "fields": {
-        "title": "%s/vis.min.js",
+      "file": "vis.min.js", "fields": {
+        "title": "%s/vis.js",
         "type": "application/javascript",
         "module-type": "library"
       }}
@@ -51,13 +51,13 @@ integrateCSS() {
   echo \
 '\define datauri(title)
 <$macrocall $name="makedatauri" type={{$title$!!type}} text={{$title$}}/>
-\end' $'\n' > $cssOut
+\end'$'\n' > $cssOut
   
   # replace urls
   gawk -v mpath="$modulePath" '
     {
       pos = match($0, /(.*)[\"'\''](.*)[\"'\''](.*)/, arr);
-      if(pos != 0) print arr[1] "<<datauri \"" mpath arr[2] "\" >>" arr[3]
+      if(pos != 0) print arr[1] "<<datauri \"" mpath "/" arr[2] "\" >>" arr[3]
       else print
     }' $cssSrc >> $cssOut
     

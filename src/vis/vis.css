@@ -1,7 +1,3 @@
-\define datauri(title)
-<$macrocall $name="makedatauri" type={{$title$!!type}} text={{$title$}}/>
-\end
-
 .vis .overlay {
   position: absolute;
   top: 0;
@@ -251,7 +247,7 @@
 }
 
 .vis.timeline .item .delete {
-  background: url(<<datauri "$:/plugins/felixhayashi/vis/img/timeline/delete.png" >>) no-repeat top center;
+  background: url('img/timeline/delete.png') no-repeat top center;
   position: absolute;
   width: 24px;
   height: 24px;
@@ -597,7 +593,7 @@ div.network-manipulationDiv {
   background: -o-linear-gradient(top,  #ffffff 0%,#fcfcfc 48%,#fafafa 50%,#fcfcfc 100%); /* Opera 11.10+ */
   background: -ms-linear-gradient(top,  #ffffff 0%,#fcfcfc 48%,#fafafa 50%,#fcfcfc 100%); /* IE10+ */
   background: linear-gradient(to bottom,  #ffffff 0%,#fcfcfc 48%,#fafafa 50%,#fcfcfc 100%); /* W3C */
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr=<<datauri "$:/plugins/felixhayashi/vis/#fcfcfc" >>,GradientType=0 ); /* IE6-9 */
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#fcfcfc',GradientType=0 ); /* IE6-9 */
 
   position: absolute;
   left: 0;
@@ -623,7 +619,7 @@ div.network-manipulation-closeDiv {
 
   background-position: 20px 3px;
   background-repeat: no-repeat;
-  background-image: url(<<datauri "$:/plugins/felixhayashi/vis/img/network/cross.png" >>);
+  background-image: url("img/network/cross.png");
   cursor: pointer;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -667,7 +663,7 @@ span.network-manipulationUI:active {
 }
 
 span.network-manipulationUI.back {
-  background-image: url(<<datauri "$:/plugins/felixhayashi/vis/img/network/backIcon.png" >>);
+  background-image: url("img/network/backIcon.png");
 }
 
 span.network-manipulationUI.none:hover {
@@ -686,11 +682,11 @@ span.network-manipulationUI.notification{
 }
 
 span.network-manipulationUI.add {
-  background-image: url(<<datauri "$:/plugins/felixhayashi/vis/img/network/addNodeIcon.png" >>);
+  background-image: url("img/network/addNodeIcon.png");
 }
 
 span.network-manipulationUI.edit {
-  background-image: url(<<datauri "$:/plugins/felixhayashi/vis/img/network/editIcon.png" >>);
+  background-image: url("img/network/editIcon.png");
 }
 
 span.network-manipulationUI.edit.editmode {
@@ -701,11 +697,11 @@ span.network-manipulationUI.edit.editmode {
 }
 
 span.network-manipulationUI.connect {
-  background-image: url(<<datauri "$:/plugins/felixhayashi/vis/img/network/connectIcon.png" >>);
+  background-image: url("img/network/connectIcon.png");
 }
 
 span.network-manipulationUI.delete {
-  background-image: url(<<datauri "$:/plugins/felixhayashi/vis/img/network/deleteIcon.png" >>);
+  background-image: url("img/network/deleteIcon.png");
 }
 /* top right bottom left */
 span.network-manipulationLabel {
@@ -754,37 +750,37 @@ div.network-navigation:active {
 }
 
 div.network-navigation.up {
-    background-image: url(<<datauri "$:/plugins/felixhayashi/vis/img/network/upArrow.png" >>);
+    background-image: url("img/network/upArrow.png");
     bottom:50px;
     left:55px;
 }
 div.network-navigation.down {
-    background-image: url(<<datauri "$:/plugins/felixhayashi/vis/img/network/downArrow.png" >>);
+    background-image: url("img/network/downArrow.png");
     bottom:10px;
     left:55px;
 }
 div.network-navigation.left {
-    background-image: url(<<datauri "$:/plugins/felixhayashi/vis/img/network/leftArrow.png" >>);
+    background-image: url("img/network/leftArrow.png");
     bottom:10px;
     left:15px;
 }
 div.network-navigation.right {
-    background-image: url(<<datauri "$:/plugins/felixhayashi/vis/img/network/rightArrow.png" >>);
+    background-image: url("img/network/rightArrow.png");
     bottom:10px;
     left:95px;
 }
 div.network-navigation.zoomIn {
-    background-image: url(<<datauri "$:/plugins/felixhayashi/vis/img/network/plus.png" >>);
+    background-image: url("img/network/plus.png");
     bottom:10px;
     right:15px;
 }
 div.network-navigation.zoomOut {
-    background-image: url(<<datauri "$:/plugins/felixhayashi/vis/img/network/minus.png" >>);
+    background-image: url("img/network/minus.png");
     bottom:10px;
     right:55px;
 }
 div.network-navigation.zoomExtends {
-    background-image: url(<<datauri "$:/plugins/felixhayashi/vis/img/network/zoomExtends.png" >>);
+    background-image: url("img/network/zoomExtends.png");
     bottom:50px;
     right:15px;
 }

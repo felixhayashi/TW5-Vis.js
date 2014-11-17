@@ -82,13 +82,13 @@
       }},
     {
       "file": "vis.css", "fields": {
-        "title": "$:/plugins/felixhayashi/vis/vis.min.css",
+        "title": "$:/plugins/felixhayashi/vis/vis.css",
         "type": "text/vnd.tiddlywiki",
         "tags": [ "$:/tags/stylesheet" ]
     }},
     {
-      "file": "vis.js", "fields": {
-        "title": "$:/plugins/felixhayashi/vis/vis.min.js",
+      "file": "vis.min.js", "fields": {
+        "title": "$:/plugins/felixhayashi/vis/vis.js",
         "type": "application/javascript",
         "module-type": "library"
       }}
