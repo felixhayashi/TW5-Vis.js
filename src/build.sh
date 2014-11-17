@@ -21,7 +21,7 @@ for((i = 0; i < $imagesLength; i++)); do
       {
         "file": "%s", "fields": {
           "title": "%s/%s",
-          "type": "text/css"
+          "type": "image/png"
       }},' "${images[i]}" "$modulePath" "${images[i]}" >> "$distPath/files/tiddlywiki.files"
       
 done;
