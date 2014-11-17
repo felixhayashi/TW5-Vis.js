@@ -32,7 +32,7 @@ printf '
       "file": "vis.css", "fields": {
         "title": "%s/vis.css",
         "type": "text/vnd.tiddlywiki",
-        "tags": [ "$:/tags/stylesheet" ]
+        "tags": [ "$:/tags/Stylesheet" ]
     }},
     {
       "file": "vis.min.js", "fields": {

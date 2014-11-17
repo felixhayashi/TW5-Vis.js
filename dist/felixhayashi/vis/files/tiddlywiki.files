@@ -84,7 +84,7 @@
       "file": "vis.css", "fields": {
         "title": "$:/plugins/felixhayashi/vis/vis.css",
         "type": "text/vnd.tiddlywiki",
-        "tags": [ "$:/tags/stylesheet" ]
+        "tags": [ "$:/tags/Stylesheet" ]
     }},
     {
       "file": "vis.min.js", "fields": {
