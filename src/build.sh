@@ -30,13 +30,13 @@ done;
 printf '
     {
       "file": "vis.css", "fields": {
-        "title": "%s/vis.css",
+        "title": "%s/vis.min.css",
         "type": "text/vnd.tiddlywiki",
         "tags": [ "$:/tags/stylesheet" ]
     }},
     {
       "file": "vis.js", "fields": {
-        "title": "%s/vis.js",
+        "title": "%s/vis.min.js",
         "type": "application/javascript",
         "module-type": "library"
       }}

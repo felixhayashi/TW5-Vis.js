@@ -3,92 +3,92 @@
       {
         "file": "img/network/acceptDeleteIcon.png", "fields": {
           "title": "$:/plugins/felixhayashi/vis/img/network/acceptDeleteIcon.png",
-          "type": "text/css"
+          "type": "image/png"
       }},
       {
         "file": "img/network/addNodeIcon.png", "fields": {
           "title": "$:/plugins/felixhayashi/vis/img/network/addNodeIcon.png",
-          "type": "text/css"
+          "type": "image/png"
       }},
       {
         "file": "img/network/backIcon.png", "fields": {
           "title": "$:/plugins/felixhayashi/vis/img/network/backIcon.png",
-          "type": "text/css"
+          "type": "image/png"
       }},
       {
         "file": "img/network/connectIcon.png", "fields": {
           "title": "$:/plugins/felixhayashi/vis/img/network/connectIcon.png",
-          "type": "text/css"
+          "type": "image/png"
       }},
       {
         "file": "img/network/cross2.png", "fields": {
           "title": "$:/plugins/felixhayashi/vis/img/network/cross2.png",
-          "type": "text/css"
+          "type": "image/png"
       }},
       {
         "file": "img/network/cross.png", "fields": {
           "title": "$:/plugins/felixhayashi/vis/img/network/cross.png",
-          "type": "text/css"
+          "type": "image/png"
       }},
       {
         "file": "img/network/deleteIcon.png", "fields": {
           "title": "$:/plugins/felixhayashi/vis/img/network/deleteIcon.png",
-          "type": "text/css"
+          "type": "image/png"
       }},
       {
         "file": "img/network/downArrow.png", "fields": {
           "title": "$:/plugins/felixhayashi/vis/img/network/downArrow.png",
-          "type": "text/css"
+          "type": "image/png"
       }},
       {
         "file": "img/network/editIcon.png", "fields": {
           "title": "$:/plugins/felixhayashi/vis/img/network/editIcon.png",
-          "type": "text/css"
+          "type": "image/png"
       }},
       {
         "file": "img/network/leftArrow.png", "fields": {
           "title": "$:/plugins/felixhayashi/vis/img/network/leftArrow.png",
-          "type": "text/css"
+          "type": "image/png"
       }},
       {
         "file": "img/network/minus.png", "fields": {
           "title": "$:/plugins/felixhayashi/vis/img/network/minus.png",
-          "type": "text/css"
+          "type": "image/png"
       }},
       {
         "file": "img/network/plus.png", "fields": {
           "title": "$:/plugins/felixhayashi/vis/img/network/plus.png",
-          "type": "text/css"
+          "type": "image/png"
       }},
       {
         "file": "img/network/rightArrow.png", "fields": {
           "title": "$:/plugins/felixhayashi/vis/img/network/rightArrow.png",
-          "type": "text/css"
+          "type": "image/png"
       }},
       {
         "file": "img/network/upArrow.png", "fields": {
           "title": "$:/plugins/felixhayashi/vis/img/network/upArrow.png",
-          "type": "text/css"
+          "type": "image/png"
       }},
       {
         "file": "img/network/zoomExtends.png", "fields": {
           "title": "$:/plugins/felixhayashi/vis/img/network/zoomExtends.png",
-          "type": "text/css"
+          "type": "image/png"
       }},
       {
         "file": "img/timeline/delete.png", "fields": {
           "title": "$:/plugins/felixhayashi/vis/img/timeline/delete.png",
-          "type": "text/css"
+          "type": "image/png"
       }},
     {
       "file": "vis.css", "fields": {
-        "title": "$:/plugins/felixhayashi/vis/vis.css",
+        "title": "$:/plugins/felixhayashi/vis/vis.min.css",
         "type": "text/vnd.tiddlywiki",
         "tags": [ "$:/tags/stylesheet" ]
     }},
     {
       "file": "vis.js", "fields": {
-        "title": "$:/plugins/felixhayashi/vis/vis.js",
+        "title": "$:/plugins/felixhayashi/vis/vis.min.js",
         "type": "application/javascript",
         "module-type": "library"
       }}
