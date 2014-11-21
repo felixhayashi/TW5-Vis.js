@@ -35,7 +35,7 @@ printf '
         "tags": [ "$:/tags/Stylesheet" ]
     }},
     {
-      "file": "vis.min.js", "fields": {
+      "file": "vis.js", "fields": {
         "title": "%s/vis.js",
         "type": "application/javascript",
         "module-type": "library"
