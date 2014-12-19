@@ -1,0 +1,4 @@
+# exclude all files with a leading dot
+.*
+!.gitignore
+!.git

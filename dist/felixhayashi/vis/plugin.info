@@ -7,5 +7,5 @@
   "source": "https://github.com/felixhayashi/tw-vis",
   "type": "application/json",
   "plugin-type": "plugin",
-  "list": "license"
+  "list": "readme"
 }
