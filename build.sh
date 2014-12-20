@@ -87,7 +87,7 @@ module-type: library
 
 # uglifyied content; redirect stdin so its not closed by npm command
 body=$(uglifyjs $visSrcPath/vis.js < /dev/null)
-body=$(cat $visSrcPath/vis.js)
+#body=$(cat $visSrcPath/vis.js) # uncomment for no compression
 
 printf "%s\n\n%s\n" "$header" "$body" > $distPath/vis.js
 
