@@ -1,4 +1,4 @@
-# tw-vis
+# TW5-Vis.js
 
 A tiddlywiki plugin for the vis.js library.
 
