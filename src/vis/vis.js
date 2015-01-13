@@ -12264,9 +12264,13 @@ return /******/ (function(modules) { // webpackBootstrap
    *                                               If animate is a number, the
    *                                               number is taken as duration
    *                                               Default duration is 500 ms.
+   * @param {Boolean} [byUser=false]
    *
    */
-  Range.prototype.setRange = function(start, end, animate) {
+  Range.prototype.setRange = function(start, end, animate, byUser) {
+    if (byUser !== true) {
+      byUser = false;
+    }
     var _start = start != undefined ? util.convert(start, 'Date').valueOf() : null;
     var _end   = end != undefined   ? util.convert(end, 'Date').valueOf()   : null;
     this._cancelAnimation();
@@ -12291,12 +12295,12 @@ return /******/ (function(modules) { // webpackBootstrap
           DateUtil.updateHiddenDates(me.body, me.options.hiddenDates);
           anyChanged = anyChanged || changed;
           if (changed) {
-            me.body.emitter.emit('rangechange', {start: new Date(me.start), end: new Date(me.end)});
+            me.body.emitter.emit('rangechange', {start: new Date(me.start), end: new Date(me.end), byUser:byUser});
           }
 
           if (done) {
             if (anyChanged) {
-              me.body.emitter.emit('rangechanged', {start: new Date(me.start), end: new Date(me.end)});
+              me.body.emitter.emit('rangechanged', {start: new Date(me.start), end: new Date(me.end), byUser:byUser});
             }
           }
           else {
@@ -12313,7 +12317,7 @@ return /******/ (function(modules) { // webpackBootstrap
       var changed = this._applyRange(_start, _end);
       DateUtil.updateHiddenDates(this.body, this.options.hiddenDates);
       if (changed) {
-        var params = {start: new Date(this.start), end: new Date(this.end)};
+        var params = {start: new Date(this.start), end: new Date(this.end), byUser:byUser};
         this.body.emitter.emit('rangechange', params);
         this.body.emitter.emit('rangechanged', params);
       }
@@ -12564,7 +12568,8 @@ return /******/ (function(modules) { // webpackBootstrap
     // fire a rangechange event
     this.body.emitter.emit('rangechange', {
       start: new Date(this.start),
-      end:   new Date(this.end)
+      end:   new Date(this.end),
+      byUser: true
     });
   };
 
@@ -12589,7 +12594,8 @@ return /******/ (function(modules) { // webpackBootstrap
     // fire a rangechanged event
     this.body.emitter.emit('rangechanged', {
       start: new Date(this.start),
-      end:   new Date(this.end)
+      end:   new Date(this.end),
+      byUser: true
     });
   };
 
@@ -12704,7 +12710,7 @@ return /******/ (function(modules) { // webpackBootstrap
         newEnd = safeEnd;
       }
 
-      this.setRange(newStart, newEnd);
+      this.setRange(newStart, newEnd, false, true);
 
       this.startToFront = false; // revert to default
       this.endToFront = true; // revert to default
@@ -12781,7 +12787,7 @@ return /******/ (function(modules) { // webpackBootstrap
       newEnd = safeEnd;
     }
 
-    this.setRange(newStart, newEnd);
+    this.setRange(newStart, newEnd, false, true);
 
     this.startToFront = false; // revert to default
     this.endToFront = true; // revert to default
@@ -22755,6 +22761,8 @@ return /******/ (function(modules) { // webpackBootstrap
         fontSize: 14, // px
         fontFace: 'verdana',
         fontFill: undefined,
+        fontStrokeWidth: 0, // px
+        fontStrokeColor: 'white',
         level: -1,
         color: {
             border: '#2B7CE9',
@@ -22788,6 +22796,8 @@ return /******/ (function(modules) { // webpackBootstrap
         fontSize: 14, // px
         fontFace: 'arial',
         fontFill: 'white',
+        fontStrokeWidth: 0, // px
+        fontStrokeColor: 'white',
         arrowScaleFactor: 1,
         dash: {
           length: 10,
@@ -23608,8 +23618,8 @@ return /******/ (function(modules) { // webpackBootstrap
    * handle drag start event
    * @private
    */
-  Network.prototype._onDragStart = function () {
-    this._handleDragStart();
+  Network.prototype._onDragStart = function (event) {
+    this._handleDragStart(event);
   };
 
 
@@ -23619,20 +23629,24 @@ return /******/ (function(modules) { // webpackBootstrap
    *
    * @private
    */
-  Network.prototype._handleDragStart = function() {
-    var drag = this.drag;
-    var node = this._getNodeAt(drag.pointer);
+  Network.prototype._handleDragStart = function(event) {
+    // in case the touch event was triggered on an external div, do the initial touch now.
+    if (this.drag.pointer === undefined) {
+      this._onTouch(event);
+    }
+
+    var node = this._getNodeAt(this.drag.pointer);
     // note: drag.pointer is set in _onTouch to get the initial touch location
 
-    drag.dragging = true;
-    drag.selection = [];
-    drag.translation = this._getTranslation();
-    drag.nodeId = null;
+    this.drag.dragging = true;
+    this.drag.selection = [];
+    this.drag.translation = this._getTranslation();
+    this.drag.nodeId = null;
     this.draggingNodes = false;
 
     if (node != null && this.constants.dragNodes == true) {
       this.draggingNodes = true;
-      drag.nodeId = node.id;
+      this.drag.nodeId = node.id;
       // select the clicked node if not yet selected
       if (!node.isSelected()) {
         this._selectObject(node,false);
@@ -23658,7 +23672,7 @@ return /******/ (function(modules) { // webpackBootstrap
           object.xFixed = true;
           object.yFixed = true;
 
-          drag.selection.push(s);
+          this.drag.selection.push(s);
         }
       }
     }
@@ -23718,8 +23732,13 @@ return /******/ (function(modules) { // webpackBootstrap
       }
     }
     else {
+      // move the network
       if (this.constants.dragNetwork == true) {
-        // move the network
+        // if the drag was not started properly because the click started outside the network div, start it now.
+        if (this.drag.pointer === undefined) {
+          this._handleDragStart(event);
+          return;
+        }
         var diffX = pointer.x - this.drag.pointer.x;
         var diffY = pointer.y - this.drag.pointer.y;
 
@@ -23728,8 +23747,6 @@ return /******/ (function(modules) { // webpackBootstrap
           this.drag.translation.y + diffY
         );
         this._redraw();
-  //      this.moving = true;
-  //      this.start();
       }
     }
   };
@@ -26593,7 +26610,7 @@ return /******/ (function(modules) { // webpackBootstrap
     }
 
     var fields = ['borderWidth','borderWidthSelected','shape','image','brokenImage','radius','fontColor',
-      'fontSize','fontFace','fontFill','group','mass'
+      'fontSize','fontFace','fontFill','fontStrokeWidth','fontStrokeColor','group','mass'
     ];
     util.selectiveDeepExtend(fields, this.options, properties);
 
@@ -27464,7 +27481,15 @@ return /******/ (function(modules) { // webpackBootstrap
       ctx.fillStyle = this.options.fontColor || "black";
       ctx.textAlign = align || "center";
       ctx.textBaseline = baseline || "middle";
+      if (this.options.fontStrokeWidth > 0){
+        ctx.lineWidth   = this.options.fontStrokeWidth;
+        ctx.strokeStyle = this.options.fontStrokeColor;
+        ctx.lineJoin    = 'round';
+      }
       for (var i = 0; i < lineCount; i++) {
+        if(this.options.fontStrokeWidth){
+          ctx.strokeText(lines[i], x, yLine);
+        }
         ctx.fillText(lines[i], x, yLine);
         yLine += fontSize;
       }
@@ -27655,7 +27680,7 @@ return /******/ (function(modules) { // webpackBootstrap
       return;
     }
 
-    var fields = ['style','fontSize','fontFace','fontColor','fontFill','width',
+    var fields = ['style','fontSize','fontFace','fontColor','fontFill','fontStrokeWidth','fontStrokeColor','width',
       'widthSelectionMultiplier','hoverWidth','arrowScaleFactor','dash','inheritColor'
     ];
     util.selectiveDeepExtend(fields, this.options, properties);
@@ -27902,168 +27927,176 @@ return /******/ (function(modules) { // webpackBootstrap
   };
 
   Edge.prototype._getViaCoordinates = function () {
-    var xVia = null;
-    var yVia = null;
-    var factor = this.options.smoothCurves.roundness;
-    var type = this.options.smoothCurves.type;
-
-    var dx = Math.abs(this.from.x - this.to.x);
-    var dy = Math.abs(this.from.y - this.to.y);
-    if (type == 'discrete' || type == 'diagonalCross') {
-      if (Math.abs(this.from.x - this.to.x) < Math.abs(this.from.y - this.to.y)) {
-        if (this.from.y > this.to.y) {
-          if (this.from.x < this.to.x) {
-            xVia = this.from.x + factor * dy;
-            yVia = this.from.y - factor * dy;
-          }
-          else if (this.from.x > this.to.x) {
-            xVia = this.from.x - factor * dy;
-            yVia = this.from.y - factor * dy;
-          }
-        }
-        else if (this.from.y < this.to.y) {
-          if (this.from.x < this.to.x) {
-            xVia = this.from.x + factor * dy;
-            yVia = this.from.y + factor * dy;
-          }
-          else if (this.from.x > this.to.x) {
-            xVia = this.from.x - factor * dy;
-            yVia = this.from.y + factor * dy;
-          }
-        }
-        if (type == "discrete") {
-          xVia = dx < factor * dy ? this.from.x : xVia;
-        }
-      }
-      else if (Math.abs(this.from.x - this.to.x) > Math.abs(this.from.y - this.to.y)) {
-        if (this.from.y > this.to.y) {
-          if (this.from.x < this.to.x) {
-            xVia = this.from.x + factor * dx;
-            yVia = this.from.y - factor * dx;
-          }
-          else if (this.from.x > this.to.x) {
-            xVia = this.from.x - factor * dx;
-            yVia = this.from.y - factor * dx;
-          }
-        }
-        else if (this.from.y < this.to.y) {
-          if (this.from.x < this.to.x) {
-            xVia = this.from.x + factor * dx;
-            yVia = this.from.y + factor * dx;
-          }
-          else if (this.from.x > this.to.x) {
-            xVia = this.from.x - factor * dx;
-            yVia = this.from.y + factor * dx;
-          }
-        }
-        if (type == "discrete") {
-          yVia = dy < factor * dx ? this.from.y : yVia;
-        }
-      }
+    if (this.options.smoothCurves.dynamic == true && this.options.smoothCurves.enabled == true ) {
+      return this.via;
     }
-    else if (type == "straightCross") {
-      if (Math.abs(this.from.x - this.to.x) < Math.abs(this.from.y - this.to.y)) {  // up - down
-        xVia = this.from.x;
-        if (this.from.y < this.to.y) {
-          yVia = this.to.y - (1-factor) * dy;
+    else if (this.options.smoothCurves.enabled == false) {
+      return {x:0,y:0};
+    }
+    else {
+      var xVia = null;
+      var yVia = null;
+      var factor = this.options.smoothCurves.roundness;
+      var type = this.options.smoothCurves.type;
+
+      var dx = Math.abs(this.from.x - this.to.x);
+      var dy = Math.abs(this.from.y - this.to.y);
+      if (type == 'discrete' || type == 'diagonalCross') {
+        if (Math.abs(this.from.x - this.to.x) < Math.abs(this.from.y - this.to.y)) {
+          if (this.from.y > this.to.y) {
+            if (this.from.x < this.to.x) {
+              xVia = this.from.x + factor * dy;
+              yVia = this.from.y - factor * dy;
+            }
+            else if (this.from.x > this.to.x) {
+              xVia = this.from.x - factor * dy;
+              yVia = this.from.y - factor * dy;
+            }
+          }
+          else if (this.from.y < this.to.y) {
+            if (this.from.x < this.to.x) {
+              xVia = this.from.x + factor * dy;
+              yVia = this.from.y + factor * dy;
+            }
+            else if (this.from.x > this.to.x) {
+              xVia = this.from.x - factor * dy;
+              yVia = this.from.y + factor * dy;
+            }
+          }
+          if (type == "discrete") {
+            xVia = dx < factor * dy ? this.from.x : xVia;
+          }
         }
-        else {
-          yVia = this.to.y + (1-factor) * dy;
+        else if (Math.abs(this.from.x - this.to.x) > Math.abs(this.from.y - this.to.y)) {
+          if (this.from.y > this.to.y) {
+            if (this.from.x < this.to.x) {
+              xVia = this.from.x + factor * dx;
+              yVia = this.from.y - factor * dx;
+            }
+            else if (this.from.x > this.to.x) {
+              xVia = this.from.x - factor * dx;
+              yVia = this.from.y - factor * dx;
+            }
+          }
+          else if (this.from.y < this.to.y) {
+            if (this.from.x < this.to.x) {
+              xVia = this.from.x + factor * dx;
+              yVia = this.from.y + factor * dx;
+            }
+            else if (this.from.x > this.to.x) {
+              xVia = this.from.x - factor * dx;
+              yVia = this.from.y + factor * dx;
+            }
+          }
+          if (type == "discrete") {
+            yVia = dy < factor * dx ? this.from.y : yVia;
+          }
         }
       }
-      else if (Math.abs(this.from.x - this.to.x) > Math.abs(this.from.y - this.to.y)) { // left - right
+      else if (type == "straightCross") {
+        if (Math.abs(this.from.x - this.to.x) < Math.abs(this.from.y - this.to.y)) {  // up - down
+          xVia = this.from.x;
+          if (this.from.y < this.to.y) {
+            yVia = this.to.y - (1 - factor) * dy;
+          }
+          else {
+            yVia = this.to.y + (1 - factor) * dy;
+          }
+        }
+        else if (Math.abs(this.from.x - this.to.x) > Math.abs(this.from.y - this.to.y)) { // left - right
+          if (this.from.x < this.to.x) {
+            xVia = this.to.x - (1 - factor) * dx;
+          }
+          else {
+            xVia = this.to.x + (1 - factor) * dx;
+          }
+          yVia = this.from.y;
+        }
+      }
+      else if (type == 'horizontal') {
         if (this.from.x < this.to.x) {
-          xVia = this.to.x - (1-factor) * dx;
+          xVia = this.to.x - (1 - factor) * dx;
         }
         else {
-          xVia = this.to.x + (1-factor) * dx;
+          xVia = this.to.x + (1 - factor) * dx;
         }
         yVia = this.from.y;
       }
-    }
-    else if (type == 'horizontal') {
-      if (this.from.x < this.to.x) {
-        xVia = this.to.x - (1-factor) * dx;
+      else if (type == 'vertical') {
+        xVia = this.from.x;
+        if (this.from.y < this.to.y) {
+          yVia = this.to.y - (1 - factor) * dy;
+        }
+        else {
+          yVia = this.to.y + (1 - factor) * dy;
+        }
       }
-      else {
-        xVia = this.to.x + (1-factor) * dx;
-      }
-      yVia = this.from.y;
-    }
-    else if (type == 'vertical') {
-      xVia = this.from.x;
-      if (this.from.y < this.to.y) {
-        yVia = this.to.y - (1-factor) * dy;
-      }
-      else {
-        yVia = this.to.y + (1-factor) * dy;
-      }
-    }
-    else { // continuous
-      if (Math.abs(this.from.x - this.to.x) < Math.abs(this.from.y - this.to.y)) {
-        if (this.from.y > this.to.y) {
-          if (this.from.x < this.to.x) {
+      else { // continuous
+        if (Math.abs(this.from.x - this.to.x) < Math.abs(this.from.y - this.to.y)) {
+          if (this.from.y > this.to.y) {
+            if (this.from.x < this.to.x) {
   //          console.log(1)
-            xVia = this.from.x + factor * dy;
-            yVia = this.from.y - factor * dy;
-            xVia = this.to.x < xVia ? this.to.x : xVia;
-          }
-          else if (this.from.x > this.to.x) {
+              xVia = this.from.x + factor * dy;
+              yVia = this.from.y - factor * dy;
+              xVia = this.to.x < xVia ? this.to.x : xVia;
+            }
+            else if (this.from.x > this.to.x) {
   //          console.log(2)
-            xVia = this.from.x - factor * dy;
-            yVia = this.from.y - factor * dy;
-            xVia = this.to.x > xVia ? this.to.x :xVia;
+              xVia = this.from.x - factor * dy;
+              yVia = this.from.y - factor * dy;
+              xVia = this.to.x > xVia ? this.to.x : xVia;
+            }
           }
-        }
-        else if (this.from.y < this.to.y) {
-          if (this.from.x < this.to.x) {
+          else if (this.from.y < this.to.y) {
+            if (this.from.x < this.to.x) {
   //          console.log(3)
-            xVia = this.from.x + factor * dy;
-            yVia = this.from.y + factor * dy;
-            xVia = this.to.x < xVia ? this.to.x : xVia;
-          }
-          else if (this.from.x > this.to.x) {
+              xVia = this.from.x + factor * dy;
+              yVia = this.from.y + factor * dy;
+              xVia = this.to.x < xVia ? this.to.x : xVia;
+            }
+            else if (this.from.x > this.to.x) {
   //          console.log(4, this.from.x, this.to.x)
-            xVia = this.from.x - factor * dy;
-            yVia = this.from.y + factor * dy;
-            xVia = this.to.x > xVia ? this.to.x : xVia;
+              xVia = this.from.x - factor * dy;
+              yVia = this.from.y + factor * dy;
+              xVia = this.to.x > xVia ? this.to.x : xVia;
+            }
           }
         }
-      }
-      else if (Math.abs(this.from.x - this.to.x) > Math.abs(this.from.y - this.to.y)) {
-        if (this.from.y > this.to.y) {
-          if (this.from.x < this.to.x) {
+        else if (Math.abs(this.from.x - this.to.x) > Math.abs(this.from.y - this.to.y)) {
+          if (this.from.y > this.to.y) {
+            if (this.from.x < this.to.x) {
   //          console.log(5)
-            xVia = this.from.x + factor * dx;
-            yVia = this.from.y - factor * dx;
-            yVia = this.to.y > yVia ? this.to.y : yVia;
-          }
-          else if (this.from.x > this.to.x) {
+              xVia = this.from.x + factor * dx;
+              yVia = this.from.y - factor * dx;
+              yVia = this.to.y > yVia ? this.to.y : yVia;
+            }
+            else if (this.from.x > this.to.x) {
   //          console.log(6)
-            xVia = this.from.x - factor * dx;
-            yVia = this.from.y - factor * dx;
-            yVia = this.to.y > yVia ? this.to.y : yVia;
+              xVia = this.from.x - factor * dx;
+              yVia = this.from.y - factor * dx;
+              yVia = this.to.y > yVia ? this.to.y : yVia;
+            }
           }
-        }
-        else if (this.from.y < this.to.y) {
-          if (this.from.x < this.to.x) {
+          else if (this.from.y < this.to.y) {
+            if (this.from.x < this.to.x) {
   //          console.log(7)
-            xVia = this.from.x + factor * dx;
-            yVia = this.from.y + factor * dx;
-            yVia = this.to.y < yVia ? this.to.y : yVia;
-          }
-          else if (this.from.x > this.to.x) {
+              xVia = this.from.x + factor * dx;
+              yVia = this.from.y + factor * dx;
+              yVia = this.to.y < yVia ? this.to.y : yVia;
+            }
+            else if (this.from.x > this.to.x) {
   //          console.log(8)
-            xVia = this.from.x - factor * dx;
-            yVia = this.from.y + factor * dx;
-            yVia = this.to.y < yVia ? this.to.y : yVia;
+              xVia = this.from.x - factor * dx;
+              yVia = this.from.y + factor * dx;
+              yVia = this.to.y < yVia ? this.to.y : yVia;
+            }
           }
         }
       }
+
+
+      return {x: xVia, y: yVia};
     }
-
-
-    return {x:xVia, y:yVia};
   };
 
   /**
@@ -28165,8 +28198,16 @@ return /******/ (function(modules) { // webpackBootstrap
       ctx.fillStyle = this.options.fontColor || "black";
       ctx.textAlign = "center";
       ctx.textBaseline =  "middle";
+      if (this.options.fontStrokeWidth > 0){
+        ctx.lineWidth   = this.options.fontStrokeWidth;
+        ctx.strokeStyle = this.options.fontStrokeColor;
+        ctx.lineJoin    = 'round';
+      }
       yLine = this.labelDimensions.yLine;
       for (var i = 0; i < lineCount; i++) {
+        if(this.options.fontStrokeWidth){
+          ctx.strokeText(lines[i], x, yLine);
+        }
         ctx.fillText(lines[i], x, yLine);
         yLine += fontSize;
       }
@@ -28352,7 +28393,70 @@ return /******/ (function(modules) { // webpackBootstrap
     }
   };
 
+  Edge.prototype._pointOnBezier = function(t) {
+    var via = this._getViaCoordinates();
 
+    var x = Math.pow(1-t,2)*this.from.x + (2*t*(1 - t))*via.x + Math.pow(t,2)*this.to.x;
+    var y = Math.pow(1-t,2)*this.from.y + (2*t*(1 - t))*via.y + Math.pow(t,2)*this.to.y;
+
+    return {x:x,y:y};
+  }
+
+  /**
+   * This function uses binary search to look for the point where the bezier curve crosses the border of the node.
+   *
+   * @param from
+   * @param ctx
+   * @returns {*}
+   * @private
+   */
+  Edge.prototype._findBorderPosition = function(from,ctx) {
+    var maxIterations = 10;
+    var iteration = 0;
+    var low = 0;
+    var high = 1;
+    var pos,angle,distanceToBorder, distanceToNodes, difference;
+    var threshold = 0.2;
+    var node = this.to;
+    if (from == true) {
+
+      node = this.from;
+    }
+
+    while (low <= high && iteration < maxIterations) {
+      var middle = (low + high) * 0.5;
+
+      pos = this._pointOnBezier(middle);
+      angle = Math.atan2((node.y - pos.y), (node.x - pos.x));
+      distanceToBorder = node.distanceToBorder(ctx,angle);
+      distanceToNodes = Math.sqrt(Math.pow(pos.x-node.x,2) + Math.pow(pos.y-node.y,2));
+      difference = distanceToBorder - distanceToNodes;
+      if (Math.abs(difference) < threshold) {
+        break; // found
+      }
+      else if (difference < 0) { // distance to nodes is larger than distance to border --> t needs to be bigger if we're looking at the to node.
+        if (from == false) {
+          low = middle;
+        }
+        else {
+          high = middle;
+        }
+      }
+      else {
+        if (from == false) {
+          high = middle;
+        }
+        else {
+          low = middle;
+        }
+      }
+
+      iteration++;
+    }
+    pos.t = middle;
+
+    return pos;
+  };
 
   /**
    * Redraw a edge as a line with an arrow
@@ -28367,59 +28471,37 @@ return /******/ (function(modules) { // webpackBootstrap
     ctx.fillStyle = ctx.strokeStyle;
     ctx.lineWidth = this._getLineWidth();
 
-    var angle, length;
-    //draw a line
+    // set vars
+    var angle, length, arrowPos;
+
+    // if not connected to itself
     if (this.from != this.to) {
-      angle = Math.atan2((this.to.y - this.from.y), (this.to.x - this.from.x));
-      var dx = (this.to.x - this.from.x);
-      var dy = (this.to.y - this.from.y);
-      var edgeSegmentLength = Math.sqrt(dx * dx + dy * dy);
+      // draw line
+      this._line(ctx);
 
-      var fromBorderDist = this.from.distanceToBorder(ctx, angle + Math.PI);
-      var fromBorderPoint = (edgeSegmentLength - fromBorderDist) / edgeSegmentLength;
-      var xFrom = (fromBorderPoint) * this.from.x + (1 - fromBorderPoint) * this.to.x;
-      var yFrom = (fromBorderPoint) * this.from.y + (1 - fromBorderPoint) * this.to.y;
-
-      var via;
-      if (this.options.smoothCurves.dynamic == true && this.options.smoothCurves.enabled == true ) {
-        via = this.via;
-      }
-      else if (this.options.smoothCurves.enabled == true) {
-        via = this._getViaCoordinates();
-      }
-
-      if (this.options.smoothCurves.enabled == true && via.x != null) {
-        angle = Math.atan2((this.to.y - via.y), (this.to.x - via.x));
-        dx = (this.to.x - via.x);
-        dy = (this.to.y - via.y);
-        edgeSegmentLength = Math.sqrt(dx * dx + dy * dy);
-      }
-      var toBorderDist = this.to.distanceToBorder(ctx, angle);
-      var toBorderPoint = (edgeSegmentLength - toBorderDist) / edgeSegmentLength;
-
-      var xTo,yTo;
-      if (this.options.smoothCurves.enabled == true && via.x != null) {
-       xTo = (1 - toBorderPoint) * via.x + toBorderPoint * this.to.x;
-       yTo = (1 - toBorderPoint) * via.y + toBorderPoint * this.to.y;
+      // draw arrow head
+      if (this.options.smoothCurves.enabled == true) {
+        var via = this._getViaCoordinates();
+        arrowPos = this._findBorderPosition(false, ctx);
+        var guidePos = this._pointOnBezier(Math.max(0.0, arrowPos.t - 0.1))
+        angle = Math.atan2((arrowPos.y - guidePos.y), (arrowPos.x - guidePos.x));
       }
       else {
-        xTo = (1 - toBorderPoint) * this.from.x + toBorderPoint * this.to.x;
-        yTo = (1 - toBorderPoint) * this.from.y + toBorderPoint * this.to.y;
-      }
+        angle = Math.atan2((this.to.y - this.from.y), (this.to.x - this.from.x));
+        var dx = (this.to.x - this.from.x);
+        var dy = (this.to.y - this.from.y);
+        var edgeSegmentLength = Math.sqrt(dx * dx + dy * dy);
+        var toBorderDist = this.to.distanceToBorder(ctx, angle);
+        var toBorderPoint = (edgeSegmentLength - toBorderDist) / edgeSegmentLength;
 
-      ctx.beginPath();
-      ctx.moveTo(xFrom,yFrom);
-      if (this.options.smoothCurves.enabled == true && via.x != null) {
-        ctx.quadraticCurveTo(via.x,via.y,xTo, yTo);
+        arrowPos = {};
+        arrowPos.x = (1 - toBorderPoint) * this.from.x + toBorderPoint * this.to.x;
+        arrowPos.y = (1 - toBorderPoint) * this.from.y + toBorderPoint * this.to.y;
       }
-      else {
-        ctx.lineTo(xTo, yTo);
-      }
-      ctx.stroke();
 
       // draw arrow at the end of the line
       length = (10 + 5 * this.options.width) * this.options.arrowScaleFactor;
-      ctx.arrow(xTo, yTo, angle, length);
+      ctx.arrow(arrowPos.x,arrowPos.y, angle, length);
       ctx.fill();
       ctx.stroke();
 
@@ -28427,9 +28509,7 @@ return /******/ (function(modules) { // webpackBootstrap
       if (this.label) {
         var point;
         if (this.options.smoothCurves.enabled == true && via != null) {
-          var midpointX = 0.5*(0.5*(this.from.x + via.x) + 0.5*(this.to.x + via.x));
-          var midpointY = 0.5*(0.5*(this.from.y + via.y) + 0.5*(this.to.y + via.y));
-          point = {x:midpointX, y:midpointY};
+          point = this._pointOnBezier(0.5);
         }
         else {
           point = this._pointOnLine(0.5);
@@ -28481,8 +28561,6 @@ return /******/ (function(modules) { // webpackBootstrap
       }
     }
   };
-
-
 
   /**
    * Calculate the distance between a point (x3,y3) and a line segment from
