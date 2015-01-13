@@ -4,8 +4,8 @@
  *
  * A dynamic, browser-based visualization library.
  *
- * @version 3.7.2-SNAPSHOT
- * @date    2015-01-06
+ * @version 3.8.1-SNAPSHOT
+ * @date    2015-01-13
  *
  * @license
  * Copyright (C) 2011-2014 Almende B.V, http://almende.com
@@ -1454,7 +1454,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /***/ function(module, exports, __webpack_require__) {
 
   var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(global, module) {//! moment.js
-  //! version : 2.8.4
+  //! version : 2.9.0
   //! authors : Tim Wood, Iskren Chernev, Moment.js contributors
   //! license : MIT
   //! momentjs.com
@@ -1465,9 +1465,9 @@ return /******/ (function(modules) { // webpackBootstrap
       ************************************/
 
       var moment,
-          VERSION = '2.8.4',
+          VERSION = '2.9.0',
           // the global-scope this is NOT the global object in Node.js
-          globalScope = typeof global !== 'undefined' ? global : this,
+          globalScope = (typeof global !== 'undefined' && (typeof window === 'undefined' || window === global.window)) ? global : this,
           oldGlobalMoment,
           round = Math.round,
           hasOwnProperty = Object.prototype.hasOwnProperty,
@@ -1544,7 +1544,7 @@ return /******/ (function(modules) { // webpackBootstrap
               ['HH', /(T| )\d\d/]
           ],
 
-          // timezone chunker '+10:00' > ['10', '00'] or '-1530' > ['-15', '30']
+          // timezone chunker '+10:00' > ['10', '00'] or '-1530' > ['-', '15', '30']
           parseTimezoneChunker = /([\+\-]|\d\d)/gi,
 
           // getter and setter names
@@ -1704,7 +1704,7 @@ return /******/ (function(modules) { // webpackBootstrap
                   return leftZeroFill(this.milliseconds(), 3);
               },
               Z    : function () {
-                  var a = -this.zone(),
+                  var a = this.utcOffset(),
                       b = '+';
                   if (a < 0) {
                       a = -a;
@@ -1713,7 +1713,7 @@ return /******/ (function(modules) { // webpackBootstrap
                   return b + leftZeroFill(toInt(a / 60), 2) + ':' + leftZeroFill(toInt(a) % 60, 2);
               },
               ZZ   : function () {
-                  var a = -this.zone(),
+                  var a = this.utcOffset(),
                       b = '+';
                   if (a < 0) {
                       a = -a;
@@ -1740,7 +1740,9 @@ return /******/ (function(modules) { // webpackBootstrap
 
           deprecations = {},
 
-          lists = ['months', 'monthsShort', 'weekdays', 'weekdaysShort', 'weekdaysMin'];
+          lists = ['months', 'monthsShort', 'weekdays', 'weekdaysShort', 'weekdaysMin'],
+
+          updateInProgress = false;
 
       // Pick the first defined of two or three arguments. dfl comes from
       // default.
@@ -1809,6 +1811,26 @@ return /******/ (function(modules) { // webpackBootstrap
           };
       }
 
+      function monthDiff(a, b) {
+          // difference in months
+          var wholeMonthDiff = ((b.year() - a.year()) * 12) + (b.month() - a.month()),
+              // b is in (anchor - 1 month, anchor + 1 month)
+              anchor = a.clone().add(wholeMonthDiff, 'months'),
+              anchor2, adjust;
+
+          if (b - anchor < 0) {
+              anchor2 = a.clone().add(wholeMonthDiff - 1, 'months');
+              // linear across the month
+              adjust = (b - anchor) / (anchor - anchor2);
+          } else {
+              anchor2 = a.clone().add(wholeMonthDiff + 1, 'months');
+              // linear across the month
+              adjust = (b - anchor) / (anchor2 - anchor);
+          }
+
+          return -(wholeMonthDiff + adjust);
+      }
+
       while (ordinalizeTokens.length) {
           i = ordinalizeTokens.pop();
           formatTokenFunctions[i + 'o'] = ordinalizeToken(formatTokenFunctions[i], i);
@@ -1819,6 +1841,31 @@ return /******/ (function(modules) { // webpackBootstrap
       }
       formatTokenFunctions.DDDD = padToken(formatTokenFunctions.DDD, 3);
 
+
+      function meridiemFixWrap(locale, hour, meridiem) {
+          var isPm;
+
+          if (meridiem == null) {
+              // nothing to do
+              return hour;
+          }
+          if (locale.meridiemHour != null) {
+              return locale.meridiemHour(hour, meridiem);
+          } else if (locale.isPM != null) {
+              // Fallback
+              isPm = locale.isPM(meridiem);
+              if (isPm && hour < 12) {
+                  hour += 12;
+              }
+              if (!isPm && hour === 12) {
+                  hour = 0;
+              }
+              return hour;
+          } else {
+              // thie is not supposed to happen
+              return hour;
+          }
+      }
 
       /************************************
           Constructors
@@ -1834,6 +1881,13 @@ return /******/ (function(modules) { // webpackBootstrap
           }
           copyConfig(this, config);
           this._d = new Date(+config._d);
+          // Prevent infinite loop in case updateOffset creates new moment
+          // objects.
+          if (updateInProgress === false) {
+              updateInProgress = true;
+              moment.updateOffset(this);
+              updateInProgress = false;
+          }
       }
 
       // Duration Constructor
@@ -2237,7 +2291,8 @@ return /******/ (function(modules) { // webpackBootstrap
           return locales[name];
       }
 
-      // Return a moment from input, that is local/utc/zone equivalent to model.
+      // Return a moment from input, that is local/utc/utcOffset equivalent to
+      // model.
       function makeAs(input, model) {
           var res, diff;
           if (model._isUTC) {
@@ -2386,6 +2441,7 @@ return /******/ (function(modules) { // webpackBootstrap
               }
           },
 
+
           _calendar : {
               sameDay : '[Today at] LT',
               nextDay : '[Tomorrow at] LT',
@@ -2448,6 +2504,14 @@ return /******/ (function(modules) { // webpackBootstrap
           _week : {
               dow : 0, // Sunday is the first day of the week.
               doy : 6  // The week that contains Jan 1st is the first week of the year.
+          },
+
+          firstDayOfWeek : function () {
+              return this._week.dow;
+          },
+
+          firstDayOfYear : function () {
+              return this._week.doy;
           },
 
           _invalidDate: 'Invalid date',
@@ -2616,14 +2680,14 @@ return /******/ (function(modules) { // webpackBootstrap
           }
       }
 
-      function timezoneMinutesFromString(string) {
+      function utcOffsetFromString(string) {
           string = string || '';
           var possibleTzMatches = (string.match(parseTokenTimezone) || []),
               tzChunk = possibleTzMatches[possibleTzMatches.length - 1] || [],
               parts = (tzChunk + '').match(parseTimezoneChunker) || ['-', 0, 0],
               minutes = +(parts[1] * 60) + toInt(parts[2]);
 
-          return parts[0] === '+' ? -minutes : minutes;
+          return parts[0] === '+' ? minutes : -minutes;
       }
 
       // function to convert string input to date
@@ -2687,7 +2751,8 @@ return /******/ (function(modules) { // webpackBootstrap
           // AM / PM
           case 'a' : // fall through to A
           case 'A' :
-              config._isPm = config._locale.isPM(input);
+              config._meridiem = input;
+              // config._isPm = config._locale.isPM(input);
               break;
           // HOUR
           case 'h' : // fall through to hh
@@ -2727,7 +2792,7 @@ return /******/ (function(modules) { // webpackBootstrap
           case 'Z' : // fall through to ZZ
           case 'ZZ' :
               config._useUTC = true;
-              config._tzm = timezoneMinutesFromString(input);
+              config._tzm = utcOffsetFromString(input);
               break;
           // WEEKDAY - human
           case 'dd':
@@ -2865,10 +2930,10 @@ return /******/ (function(modules) { // webpackBootstrap
           }
 
           config._d = (config._useUTC ? makeUTCDate : makeDate).apply(null, input);
-          // Apply timezone offset from input. The actual zone can be changed
+          // Apply timezone offset from input. The actual utcOffset can be changed
           // with parseZone.
           if (config._tzm != null) {
-              config._d.setUTCMinutes(config._d.getUTCMinutes() + config._tzm);
+              config._d.setUTCMinutes(config._d.getUTCMinutes() - config._tzm);
           }
 
           if (config._nextDay) {
@@ -2964,14 +3029,9 @@ return /******/ (function(modules) { // webpackBootstrap
           if (config._pf.bigHour === true && config._a[HOUR] <= 12) {
               config._pf.bigHour = undefined;
           }
-          // handle am pm
-          if (config._isPm && config._a[HOUR] < 12) {
-              config._a[HOUR] += 12;
-          }
-          // if is 12 am, change hours to 0
-          if (config._isPm === false && config._a[HOUR] === 12) {
-              config._a[HOUR] = 0;
-          }
+          // handle meridiem
+          config._a[HOUR] = meridiemFixWrap(config._locale, config._a[HOUR],
+                  config._meridiem);
           dateFromConfig(config);
           checkOverflow(config);
       }
@@ -3413,6 +3473,8 @@ return /******/ (function(modules) { // webpackBootstrap
                   s: parseIso(match[7]),
                   w: parseIso(match[8])
               };
+          } else if (duration == null) {// checks for null or undefined
+              duration = {};
           } else if (typeof duration === 'object' &&
                   ('from' in duration || 'to' in duration)) {
               diffRes = momentsDifference(moment(duration.from), moment(duration.to));
@@ -3577,6 +3639,8 @@ return /******/ (function(modules) { // webpackBootstrap
           return toInt(input) + (toInt(input) > 68 ? 1900 : 2000);
       };
 
+      moment.isDate = isDate;
+
       /************************************
           Moment Prototype
       ************************************/
@@ -3589,7 +3653,7 @@ return /******/ (function(modules) { // webpackBootstrap
           },
 
           valueOf : function () {
-              return +this._d + ((this._offset || 0) * 60000);
+              return +this._d - ((this._offset || 0) * 60000);
           },
 
           unix : function () {
@@ -3652,16 +3716,16 @@ return /******/ (function(modules) { // webpackBootstrap
           },
 
           utc : function (keepLocalTime) {
-              return this.zone(0, keepLocalTime);
+              return this.utcOffset(0, keepLocalTime);
           },
 
           local : function (keepLocalTime) {
               if (this._isUTC) {
-                  this.zone(0, keepLocalTime);
+                  this.utcOffset(0, keepLocalTime);
                   this._isUTC = false;
 
                   if (keepLocalTime) {
-                      this.add(this._dateTzOffset(), 'm');
+                      this.subtract(this._dateUtcOffset(), 'm');
                   }
               }
               return this;
@@ -3678,29 +3742,20 @@ return /******/ (function(modules) { // webpackBootstrap
 
           diff : function (input, units, asFloat) {
               var that = makeAs(input, this),
-                  zoneDiff = (this.zone() - that.zone()) * 6e4,
-                  diff, output, daysAdjust;
+                  zoneDiff = (that.utcOffset() - this.utcOffset()) * 6e4,
+                  anchor, diff, output, daysAdjust;
 
               units = normalizeUnits(units);
 
-              if (units === 'year' || units === 'month') {
-                  // average number of days in the months in the given dates
-                  diff = (this.daysInMonth() + that.daysInMonth()) * 432e5; // 24 * 60 * 60 * 1000 / 2
-                  // difference in months
-                  output = ((this.year() - that.year()) * 12) + (this.month() - that.month());
-                  // adjust by taking difference in days, average number of days
-                  // and dst in the given months.
-                  daysAdjust = (this - moment(this).startOf('month')) -
-                      (that - moment(that).startOf('month'));
-                  // same as above but with zones, to negate all dst
-                  daysAdjust -= ((this.zone() - moment(this).startOf('month').zone()) -
-                          (that.zone() - moment(that).startOf('month').zone())) * 6e4;
-                  output += daysAdjust / diff;
-                  if (units === 'year') {
+              if (units === 'year' || units === 'month' || units === 'quarter') {
+                  output = monthDiff(this, that);
+                  if (units === 'quarter') {
+                      output = output / 3;
+                  } else if (units === 'year') {
                       output = output / 12;
                   }
               } else {
-                  diff = (this - that);
+                  diff = this - that;
                   output = units === 'second' ? diff / 1e3 : // 1000
                       units === 'minute' ? diff / 6e4 : // 1000 * 60
                       units === 'hour' ? diff / 36e5 : // 1000 * 60 * 60
@@ -3721,7 +3776,8 @@ return /******/ (function(modules) { // webpackBootstrap
 
           calendar : function (time) {
               // We want to compare the start of today, vs this.
-              // Getting start-of-today depends on whether we're zone'd or not.
+              // Getting start-of-today depends on whether we're locat/utc/offset
+              // or not.
               var now = time || moment(),
                   sod = makeAs(now, this).startOf('day'),
                   diff = this.diff(sod, 'days', true),
@@ -3739,8 +3795,8 @@ return /******/ (function(modules) { // webpackBootstrap
           },
 
           isDST : function () {
-              return (this.zone() < this.clone().month(0).zone() ||
-                  this.zone() < this.clone().month(5).zone());
+              return (this.utcOffset() > this.clone().month(0).utcOffset() ||
+                  this.utcOffset() > this.clone().month(5).utcOffset());
           },
 
           day : function (input) {
@@ -3830,6 +3886,10 @@ return /******/ (function(modules) { // webpackBootstrap
               }
           },
 
+          isBetween: function (from, to, units) {
+              return this.isAfter(from, units) && this.isBefore(to, units);
+          },
+
           isSame: function (input, units) {
               var inputMs;
               units = normalizeUnits(units || 'millisecond');
@@ -3858,9 +3918,27 @@ return /******/ (function(modules) { // webpackBootstrap
                   }
           ),
 
+          zone : deprecate(
+                  'moment().zone is deprecated, use moment().utcOffset instead. ' +
+                  'https://github.com/moment/moment/issues/1779',
+                  function (input, keepLocalTime) {
+                      if (input != null) {
+                          if (typeof input !== 'string') {
+                              input = -input;
+                          }
+
+                          this.utcOffset(input, keepLocalTime);
+
+                          return this;
+                      } else {
+                          return -this.utcOffset();
+                      }
+                  }
+          ),
+
           // keepLocalTime = true means only change the timezone, without
-          // affecting the local hour. So 5:31:26 +0300 --[zone(2, true)]-->
-          // 5:31:26 +0200 It is possible that 5:31:26 doesn't exist int zone
+          // affecting the local hour. So 5:31:26 +0300 --[utcOffset(2, true)]-->
+          // 5:31:26 +0200 It is possible that 5:31:26 doesn't exist with offset
           // +0200, so we adjust the time as needed, to be valid.
           //
           // Keeping the time actually adds/subtracts (one hour)
@@ -3868,38 +3946,51 @@ return /******/ (function(modules) { // webpackBootstrap
           // a second time. In case it wants us to change the offset again
           // _changeInProgress == true case, then we have to adjust, because
           // there is no such time in the given timezone.
-          zone : function (input, keepLocalTime) {
+          utcOffset : function (input, keepLocalTime) {
               var offset = this._offset || 0,
                   localAdjust;
               if (input != null) {
                   if (typeof input === 'string') {
-                      input = timezoneMinutesFromString(input);
+                      input = utcOffsetFromString(input);
                   }
                   if (Math.abs(input) < 16) {
                       input = input * 60;
                   }
                   if (!this._isUTC && keepLocalTime) {
-                      localAdjust = this._dateTzOffset();
+                      localAdjust = this._dateUtcOffset();
                   }
                   this._offset = input;
                   this._isUTC = true;
                   if (localAdjust != null) {
-                      this.subtract(localAdjust, 'm');
+                      this.add(localAdjust, 'm');
                   }
                   if (offset !== input) {
                       if (!keepLocalTime || this._changeInProgress) {
                           addOrSubtractDurationFromMoment(this,
-                                  moment.duration(offset - input, 'm'), 1, false);
+                                  moment.duration(input - offset, 'm'), 1, false);
                       } else if (!this._changeInProgress) {
                           this._changeInProgress = true;
                           moment.updateOffset(this, true);
                           this._changeInProgress = null;
                       }
                   }
+
+                  return this;
               } else {
-                  return this._isUTC ? offset : this._dateTzOffset();
+                  return this._isUTC ? offset : this._dateUtcOffset();
               }
-              return this;
+          },
+
+          isLocal : function () {
+              return !this._isUTC;
+          },
+
+          isUtcOffset : function () {
+              return this._isUTC;
+          },
+
+          isUtc : function () {
+              return this._isUTC && this._offset === 0;
           },
 
           zoneAbbr : function () {
@@ -3912,9 +4003,9 @@ return /******/ (function(modules) { // webpackBootstrap
 
           parseZone : function () {
               if (this._tzm) {
-                  this.zone(this._tzm);
+                  this.utcOffset(this._tzm);
               } else if (typeof this._i === 'string') {
-                  this.zone(this._i);
+                  this.utcOffset(utcOffsetFromString(this._i));
               }
               return this;
           },
@@ -3924,10 +4015,10 @@ return /******/ (function(modules) { // webpackBootstrap
                   input = 0;
               }
               else {
-                  input = moment(input).zone();
+                  input = moment(input).utcOffset();
               }
 
-              return (this.zone() - input) % 60 === 0;
+              return (this.utcOffset() - input) % 60 === 0;
           },
 
           daysInMonth : function () {
@@ -3990,9 +4081,17 @@ return /******/ (function(modules) { // webpackBootstrap
           },
 
           set : function (units, value) {
-              units = normalizeUnits(units);
-              if (typeof this[units] === 'function') {
-                  this[units](value);
+              var unit;
+              if (typeof units === 'object') {
+                  for (unit in units) {
+                      this.set(unit, units[unit]);
+                  }
+              }
+              else {
+                  units = normalizeUnits(units);
+                  if (typeof this[units] === 'function') {
+                      this[units](value);
+                  }
               }
               return this;
           },
@@ -4029,11 +4128,12 @@ return /******/ (function(modules) { // webpackBootstrap
               return this._locale;
           },
 
-          _dateTzOffset : function () {
+          _dateUtcOffset : function () {
               // On Firefox.24 Date#getTimezoneOffset returns a floating point.
               // https://github.com/moment/moment/pull/1871
-              return Math.round(this._d.getTimezoneOffset() / 15) * 15;
+              return -Math.round(this._d.getTimezoneOffset() / 15) * 15;
           }
+
       });
 
       function rawMonthSetter(mom, value) {
@@ -4101,6 +4201,9 @@ return /******/ (function(modules) { // webpackBootstrap
 
       // add aliased format methods
       moment.fn.toJSON = moment.fn.toISOString;
+
+      // alias isUtc for dev-friendliness
+      moment.fn.isUTC = moment.fn.isUtc;
 
       /************************************
           Duration Prototype
@@ -4289,6 +4392,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
           localeData : function () {
               return this._locale;
+          },
+
+          toJSON : function () {
+              return this.toISOString();
           }
       });
 
@@ -13488,7 +13595,9 @@ return /******/ (function(modules) { // webpackBootstrap
 
       if ('clickToUse' in options) {
         if (options.clickToUse) {
-          this.activator = new Activator(this.dom.root);
+          if (!this.activator) {
+            this.activator = new Activator(this.dom.root);
+          }
         }
         else {
           if (this.activator) {
@@ -13904,6 +14013,7 @@ return /******/ (function(modules) { // webpackBootstrap
       }
       else {
         console.log('WARNING: infinite loop in redraw?')
+        throw new Error("bla")
       }
       this.redrawCount = 0;
     }
@@ -18047,14 +18157,12 @@ return /******/ (function(modules) { // webpackBootstrap
   function TimeAxis (body, options) {
     this.dom = {
       foreground: null,
-      majorLines: [],
+      lines: [],
       majorTexts: [],
-      minorLines: [],
       minorTexts: [],
       redundant: {
-        majorLines: [],
+        lines: [],
         majorTexts: [],
-        minorLines: [],
         minorTexts: []
       }
     };
@@ -18072,8 +18180,6 @@ return /******/ (function(modules) { // webpackBootstrap
       // TODO: implement timeaxis orientations 'left' and 'right'
       showMinorLabels: true,
       showMajorLabels: true,
-      showMajorLines: true,
-      showMinorLines: true,
       format: null
     };
     this.options = util.extend({}, this.defaultOptions);
@@ -18099,7 +18205,13 @@ return /******/ (function(modules) { // webpackBootstrap
   TimeAxis.prototype.setOptions = function(options) {
     if (options) {
       // copy all options that we know
-      util.selectiveExtend(['orientation', 'showMinorLabels', 'showMajorLabels', 'showMinorLines', 'showMajorLines','hiddenDates', 'format'], this.options, options);
+      util.selectiveExtend([
+        'orientation',
+        'showMinorLabels',
+        'showMajorLabels',
+        'hiddenDates',
+        'format'
+      ], this.options, options);
 
       // apply locale to moment.js
       // TODO: not so nice, this is applied globally to moment.js
@@ -18226,29 +18338,40 @@ return /******/ (function(modules) { // webpackBootstrap
     // can be picked for re-use, and clear the lists with lines and texts.
     // At the end of the function _repaintLabels, left over elements will be cleaned up
     var dom = this.dom;
-    dom.redundant.majorLines = dom.majorLines;
+    dom.redundant.lines = dom.lines;
     dom.redundant.majorTexts = dom.majorTexts;
-    dom.redundant.minorLines = dom.minorLines;
     dom.redundant.minorTexts = dom.minorTexts;
-    dom.majorLines = [];
+    dom.lines = [];
     dom.majorTexts = [];
-    dom.minorLines = [];
     dom.minorTexts = [];
 
-    step.first();
+    var cur;
+    var x = 0;
+    var isMajor;
+    var xPrev = 0;
+    var width = 0;
+    var prevLine;
     var xFirstMajorLabel = undefined;
     var max = 0;
+    var className;
+
+    step.first();
     while (step.hasNext() && max < 1000) {
       max++;
-      var cur = step.getCurrent();
-      var x = this.body.util.toScreen(cur);
-      var isMajor = step.isMajor();
 
+      cur = step.getCurrent();
+      isMajor = step.isMajor();
+      className = step.getClassName();
 
-      // TODO: lines must have a width, such that we can create css backgrounds
+      xPrev = x;
+      x = this.body.util.toScreen(cur);
+      width = x - xPrev;
+      if (prevLine) {
+        prevLine.style.width = width + 'px';
+      }
 
       if (this.options.showMinorLabels) {
-        this._repaintMinorText(x, step.getLabelMinor(), orientation);
+        this._repaintMinorText(x, step.getLabelMinor(), orientation, className);
       }
 
       if (isMajor && this.options.showMajorLabels) {
@@ -18256,14 +18379,12 @@ return /******/ (function(modules) { // webpackBootstrap
           if (xFirstMajorLabel == undefined) {
             xFirstMajorLabel = x;
           }
-          this._repaintMajorText(x, step.getLabelMajor(), orientation);
+          this._repaintMajorText(x, step.getLabelMajor(), orientation, className);
         }
-        if (this.options.showMajorLines == true) {
-          this._repaintMajorLine(x, orientation);
-        }
+        prevLine = this._repaintMajorLine(x, orientation, className);
       }
-      else if (this.options.showMinorLines == true) {
-        this._repaintMinorLine(x, orientation);
+      else {
+        prevLine = this._repaintMinorLine(x, orientation, className);
       }
 
       step.next();
@@ -18276,7 +18397,7 @@ return /******/ (function(modules) { // webpackBootstrap
           widthText = leftText.length * (this.props.majorCharWidth || 10) + 10; // upper bound estimation
 
       if (xFirstMajorLabel == undefined || widthText < xFirstMajorLabel) {
-        this._repaintMajorText(0, leftText, orientation);
+        this._repaintMajorText(0, leftText, orientation, className);
       }
     }
 
@@ -18296,9 +18417,10 @@ return /******/ (function(modules) { // webpackBootstrap
    * @param {Number} x
    * @param {String} text
    * @param {String} orientation   "top" or "bottom" (default)
+   * @param {String} className
    * @private
    */
-  TimeAxis.prototype._repaintMinorText = function (x, text, orientation) {
+  TimeAxis.prototype._repaintMinorText = function (x, text, orientation, className) {
     // reuse redundant label
     var label = this.dom.redundant.minorTexts.shift();
 
@@ -18307,7 +18429,6 @@ return /******/ (function(modules) { // webpackBootstrap
       var content = document.createTextNode('');
       label = document.createElement('div');
       label.appendChild(content);
-      label.className = 'text minor';
       this.dom.foreground.appendChild(label);
     }
     this.dom.minorTexts.push(label);
@@ -18316,6 +18437,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
     label.style.top = (orientation == 'top') ? (this.props.majorLabelHeight + 'px') : '0';
     label.style.left = x + 'px';
+    label.className = 'text minor ' + className;
     //label.title = title;  // TODO: this is a heavy operation
   };
 
@@ -18324,9 +18446,10 @@ return /******/ (function(modules) { // webpackBootstrap
    * @param {Number} x
    * @param {String} text
    * @param {String} orientation   "top" or "bottom" (default)
+   * @param {String} className
    * @private
    */
-  TimeAxis.prototype._repaintMajorText = function (x, text, orientation) {
+  TimeAxis.prototype._repaintMajorText = function (x, text, orientation, className) {
     // reuse redundant label
     var label = this.dom.redundant.majorTexts.shift();
 
@@ -18334,13 +18457,13 @@ return /******/ (function(modules) { // webpackBootstrap
       // create label
       var content = document.createTextNode(text);
       label = document.createElement('div');
-      label.className = 'text major';
       label.appendChild(content);
       this.dom.foreground.appendChild(label);
     }
     this.dom.majorTexts.push(label);
 
     label.childNodes[0].nodeValue = text;
+    label.className = 'text major ' + className;
     //label.title = title; // TODO: this is a heavy operation
 
     label.style.top = (orientation == 'top') ? '0' : (this.props.minorLabelHeight  + 'px');
@@ -18351,19 +18474,19 @@ return /******/ (function(modules) { // webpackBootstrap
    * Create a minor line for the axis at position x
    * @param {Number} x
    * @param {String} orientation   "top" or "bottom" (default)
+   * @param {String} className
+   * @return {Element} Returns the created line
    * @private
    */
-  TimeAxis.prototype._repaintMinorLine = function (x, orientation) {
+  TimeAxis.prototype._repaintMinorLine = function (x, orientation, className) {
     // reuse redundant line
-    var line = this.dom.redundant.minorLines.shift();
-
+    var line = this.dom.redundant.lines.shift();
     if (!line) {
       // create vertical line
       line = document.createElement('div');
-      line.className = 'grid vertical minor';
       this.dom.background.appendChild(line);
     }
-    this.dom.minorLines.push(line);
+    this.dom.lines.push(line);
 
     var props = this.props;
     if (orientation == 'top') {
@@ -18374,25 +18497,29 @@ return /******/ (function(modules) { // webpackBootstrap
     }
     line.style.height = props.minorLineHeight + 'px';
     line.style.left = (x - props.minorLineWidth / 2) + 'px';
+
+    line.className = 'grid vertical minor ' + className;
+
+    return line;
   };
 
   /**
    * Create a Major line for the axis at position x
    * @param {Number} x
    * @param {String} orientation   "top" or "bottom" (default)
+   * @param {String} className
+   * @return {Element} Returns the created line
    * @private
    */
-  TimeAxis.prototype._repaintMajorLine = function (x, orientation) {
+  TimeAxis.prototype._repaintMajorLine = function (x, orientation, className) {
     // reuse redundant line
-    var line = this.dom.redundant.majorLines.shift();
-
+    var line = this.dom.redundant.lines.shift();
     if (!line) {
       // create vertical line
-      line = document.createElement('DIV');
-      line.className = 'grid vertical major';
+      line = document.createElement('div');
       this.dom.background.appendChild(line);
     }
-    this.dom.majorLines.push(line);
+    this.dom.lines.push(line);
 
     var props = this.props;
     if (orientation == 'top') {
@@ -18403,6 +18530,10 @@ return /******/ (function(modules) { // webpackBootstrap
     }
     line.style.left = (x - props.majorLineWidth / 2) + 'px';
     line.style.height = props.majorLineHeight + 'px';
+
+    line.className = 'grid vertical major ' + className;
+
+    return line;
   };
 
   /**
@@ -18982,6 +19113,79 @@ return /******/ (function(modules) { // webpackBootstrap
 
     var format = this.format.majorLabels[this.scale];
     return (format && format.length > 0) ? moment(date).format(format) : '';
+  };
+
+  TimeStep.prototype.getClassName = function() {
+    var m = moment(this.current);
+    var date = m.locale ? m.locale('en') : m.lang('en'); // old versions of moment have .lang() function
+    var step = this.step;
+
+    function even(value) {
+      return (value / step % 2 == 0) ? ' even' : ' odd';
+    }
+
+    function today(date) {
+      if (date.isSame(new Date(), 'day')) {
+        return ' today';
+      }
+      if (date.isSame(moment().add(1, 'day'), 'day')) {
+        return ' tomorrow';
+      }
+      if (date.isSame(moment().add(-1, 'day'), 'day')) {
+        return ' yesterday';
+      }
+      return '';
+    }
+
+    function currentWeek(date) {
+      return date.isSame(new Date(), 'week') ? ' current-week' : '';
+    }
+
+    function currentMonth(date) {
+      return date.isSame(new Date(), 'month') ? ' current-month' : '';
+    }
+
+    function currentYear(date) {
+      return date.isSame(new Date(), 'year') ? ' current-year' : '';
+    }
+
+    switch (this.scale) {
+      case 'millisecond':
+        return even(date.milliseconds()).trim();
+
+      case 'second':
+        return even(date.seconds()).trim();
+
+      case 'minute':
+        return even(date.minutes()).trim();
+
+      case 'hour':
+        var hours = date.hours();
+        if (this.step == 4) {
+          hours = hours + '-' + (hours + 4);
+        }
+        return hours + 'h' + today(date) + even(date.hours());
+
+      case 'weekday':
+        return date.format('dddd').toLowerCase() +
+            today(date) + currentWeek(date) + even(date.date());
+
+      case 'day':
+        var day = date.date();
+        var month = date.format('MMMM').toLowerCase();
+        return 'day' + day + ' ' + month + currentMonth(date) + even(day - 1);
+
+      case 'month':
+        return date.format('MMMM').toLowerCase() +
+            currentMonth(date) + even(date.month());
+
+      case 'year':
+        var year = date.year();
+        return 'year' + year + currentYear(date)+ even(year);
+
+      default:
+        return '';
+    }
   };
 
   module.exports = TimeStep;
@@ -19685,8 +19889,6 @@ return /******/ (function(modules) { // webpackBootstrap
       dataAxis: {
         showMinorLabels: true,
         showMajorLabels: true,
-        showMinorLines: true,
-        showMajorLines: true,
         icons: false,
         width: '40px',
         visible: true,
@@ -19735,7 +19937,8 @@ return /******/ (function(modules) { // webpackBootstrap
     this.hammer = null;
     this.groups = {};
     this.abortedGraphUpdate = false;
-    this.autoSizeSVG = false;
+    this.updateSVGheight = false;
+    this.updateSVGheightOnResize = false;
 
     var me = this;
     this.itemsData = null;    // DataSet
@@ -19829,11 +20032,12 @@ return /******/ (function(modules) { // webpackBootstrap
     if (options) {
       var fields = ['sampling','defaultGroup','height','graphHeight','yAxisOrientation','style','barChart','dataAxis','sort','groups'];
       if (options.graphHeight === undefined && options.height !== undefined && this.body.domProps.centerContainer.height !== undefined) {
-        this.autoSizeSVG = true;
+        this.updateSVGheight = true;
+        this.updateSVGheightOnResize = true;
       }
       else if (this.body.domProps.centerContainer.height !== undefined && options.graphHeight !== undefined) {
         if (parseInt((options.graphHeight + '').replace("px",'')) < this.body.domProps.centerContainer.height) {
-          this.autoSizeSVG = true;
+          this.updateSVGheight = true;
         }
       }
       util.selectiveDeepExtend(fields, this.options, options);
@@ -20201,18 +20405,20 @@ return /******/ (function(modules) { // webpackBootstrap
     if (resized == true) {
       this.svg.style.width = util.option.asSize(3*this.props.width);
       this.svg.style.left = util.option.asSize(-this.props.width);
-      if ((this.options.height + '').indexOf("%") != -1) {
-        this.autoSizeSVG = true;
+
+      // if the height of the graph is set as proportional, change the height of the svg
+      if ((this.options.height + '').indexOf("%") != -1 || this.updateSVGheightOnResize == true) {
+        this.updateSVGheight = true;
       }
     }
 
     // update the height of the graph on each redraw of the graph.
-    if (this.autoSizeSVG == true) {
+    if (this.updateSVGheight == true) {
       if (this.options.graphHeight != this.body.domProps.centerContainer.height + 'px') {
         this.options.graphHeight = this.body.domProps.centerContainer.height + 'px';
         this.svg.style.height = this.body.domProps.centerContainer.height + 'px';
       }
-      this.autoSizeSVG = false;
+      this.updateSVGheight = false;
     }
     else {
       this.svg.style.height = ('' + this.options.graphHeight).replace('px','') + 'px';
@@ -20237,7 +20443,6 @@ return /******/ (function(modules) { // webpackBootstrap
 
     this.legendLeft.redraw();
     this.legendRight.redraw();
-
     return resized;
   };
 
@@ -20458,7 +20663,7 @@ return /******/ (function(modules) { // webpackBootstrap
    * @private
    */
   LineGraph.prototype._updateYAxis = function (groupIds, groupRanges) {
-    var changeCalled = false;
+    var resized = false;
     var yAxisLeftUsed = false;
     var yAxisRightUsed = false;
     var minLeft = 1e9, minRight = 1e9, maxLeft = -1e9, maxRight = -1e9, minVal, maxVal;
@@ -20467,12 +20672,12 @@ return /******/ (function(modules) { // webpackBootstrap
       // this is here to make sure that if there are no items in the axis but there are groups, that there is no infinite draw/redraw loop.
       for (var i = 0; i < groupIds.length; i++) {
         var group = this.groups[groupIds[i]];
-        if (group && group.options.yAxisOrientation == 'left') {
+        if (group && group.options.yAxisOrientation != 'right') {
           yAxisLeftUsed = true;
           minLeft = 0;
           maxLeft = 0;
         }
-        else {
+        else if (group && group.options.yAxisOrientation) {
           yAxisRightUsed = true;
           minRight = 0;
           maxRight = 0;
@@ -20486,7 +20691,7 @@ return /******/ (function(modules) { // webpackBootstrap
             minVal = groupRanges[groupIds[i]].min;
             maxVal = groupRanges[groupIds[i]].max;
 
-            if (groupRanges[groupIds[i]].yAxisOrientation == 'left') {
+            if (groupRanges[groupIds[i]].yAxisOrientation != 'right') {
               yAxisLeftUsed = true;
               minLeft = minLeft > minVal ? minVal : minLeft;
               maxLeft = maxLeft < maxVal ? maxVal : maxLeft;
@@ -20507,8 +20712,9 @@ return /******/ (function(modules) { // webpackBootstrap
         this.yAxisRight.setRange(minRight, maxRight);
       }
     }
-    changeCalled = this._toggleAxisVisiblity(yAxisLeftUsed , this.yAxisLeft)  || changeCalled;
-    changeCalled = this._toggleAxisVisiblity(yAxisRightUsed, this.yAxisRight) || changeCalled;
+    resized = this._toggleAxisVisiblity(yAxisLeftUsed , this.yAxisLeft)  || resized;
+    resized = this._toggleAxisVisiblity(yAxisRightUsed, this.yAxisRight) || resized;
+
     if (yAxisRightUsed == true && yAxisLeftUsed == true) {
       this.yAxisLeft.drawIcons = true;
       this.yAxisRight.drawIcons = true;
@@ -20518,18 +20724,17 @@ return /******/ (function(modules) { // webpackBootstrap
       this.yAxisRight.drawIcons = false;
     }
     this.yAxisRight.master = !yAxisLeftUsed;
-
     if (this.yAxisRight.master == false) {
       if (yAxisRightUsed == true) {this.yAxisLeft.lineOffset = this.yAxisRight.width;}
       else                        {this.yAxisLeft.lineOffset = 0;}
 
-      changeCalled = this.yAxisLeft.redraw() || changeCalled;
+      resized = this.yAxisLeft.redraw() || resized;
       this.yAxisRight.stepPixelsForced = this.yAxisLeft.stepPixels;
       this.yAxisRight.zeroCrossing = this.yAxisLeft.zeroCrossing;
-      changeCalled = this.yAxisRight.redraw() || changeCalled;
+      resized = this.yAxisRight.redraw() || resized;
     }
     else {
-      changeCalled = this.yAxisRight.redraw() || changeCalled;
+      resized = this.yAxisRight.redraw() || resized;
     }
 
     // clean the accumulated lists
@@ -20540,7 +20745,7 @@ return /******/ (function(modules) { // webpackBootstrap
       groupIds.splice(groupIds.indexOf('__barchartRight'),1);
     }
 
-    return changeCalled;
+    return resized;
   };
 
 
@@ -20654,8 +20859,6 @@ return /******/ (function(modules) { // webpackBootstrap
       orientation: 'left',  // supported: 'left', 'right'
       showMinorLabels: true,
       showMajorLabels: true,
-      showMinorLines: true,
-      showMajorLines: true,
       icons: true,
       majorLinesOffset: 7,
       minorLinesOffset: 4,
@@ -20755,8 +20958,6 @@ return /******/ (function(modules) { // webpackBootstrap
         'orientation',
         'showMinorLabels',
         'showMajorLabels',
-        'showMajorLines',
-        'showMinorLines',
         'icons',
         'majorLinesOffset',
         'minorLinesOffset',
@@ -20896,7 +21097,7 @@ return /******/ (function(modules) { // webpackBootstrap
    * @return {boolean} Returns true if the component is resized
    */
   DataAxis.prototype.redraw = function () {
-    var changeCalled = false;
+    var resized = false;
     var activeGroups = 0;
     
     // Make sure the line container adheres to the vertical scrolling.
@@ -20949,6 +21150,8 @@ return /******/ (function(modules) { // webpackBootstrap
         frame.style.bottom = '';
         frame.style.width = this.width + 'px';
         frame.style.height = this.height + "px";
+        this.props.width = this.body.domProps.left.width;
+        this.props.height = this.body.domProps.left.height;
       }
       else { // right
         frame.style.top = '';
@@ -20956,8 +21159,12 @@ return /******/ (function(modules) { // webpackBootstrap
         frame.style.left = '0';
         frame.style.width = this.width + 'px';
         frame.style.height = this.height + "px";
+        this.props.width = this.body.domProps.right.width;
+        this.props.height = this.body.domProps.right.height;
       }
-      changeCalled = this._redrawLabels();
+
+      resized = this._redrawLabels();
+      resized = this._isResized() || resized;
 
       if (this.options.icons == true) {
         this._redrawGroupIcons();
@@ -20968,7 +21175,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
       this._redrawTitle(orientation);
     }
-    return changeCalled;
+    return resized;
   };
 
   /**
@@ -20976,6 +21183,7 @@ return /******/ (function(modules) { // webpackBootstrap
    * @private
    */
   DataAxis.prototype._redrawLabels = function () {
+    var resized = false;
     DOMutil.prepareElements(this.DOMelements.lines);
     DOMutil.prepareElements(this.DOMelements.labels);
 
@@ -21056,11 +21264,9 @@ return /******/ (function(modules) { // webpackBootstrap
         if (y >= 0) {
           this._redrawLabel(y - 2, step.getCurrent(decimals), orientation, 'yAxis major', this.props.majorCharHeight);
         }
-        if (this.options.showMajorLines == true) {
-          this._redrawLine(y, orientation, 'grid horizontal major', this.options.majorLinesOffset, this.props.majorLineWidth);
-        }
+        this._redrawLine(y, orientation, 'grid horizontal major', this.options.majorLinesOffset, this.props.majorLineWidth);
       }
-      else if (this.options.showMinorLines == true) {
+      else {
         this._redrawLine(y, orientation, 'grid horizontal minor', this.options.minorLinesOffset, this.props.minorLineWidth);
       }
 
@@ -21092,7 +21298,7 @@ return /******/ (function(modules) { // webpackBootstrap
       DOMutil.cleanupElements(this.DOMelements.lines);
       DOMutil.cleanupElements(this.DOMelements.labels);
       this.redraw();
-      return true;
+      resized = true;
     }
     // this will resize the yAxis if it is too big for the labels.
     else if (this.maxLabelSize < (this.width - offset) && this.options.visible == true && this.width > this.minWidth) {
@@ -21101,13 +21307,15 @@ return /******/ (function(modules) { // webpackBootstrap
       DOMutil.cleanupElements(this.DOMelements.lines);
       DOMutil.cleanupElements(this.DOMelements.labels);
       this.redraw();
-      return true;
+      resized = true;
     }
     else {
       DOMutil.cleanupElements(this.DOMelements.lines);
       DOMutil.cleanupElements(this.DOMelements.labels);
-      return false;
+      resized = false;
     }
+
+    return resized;
   };
 
   DataAxis.prototype.convertValue = function (value) {
@@ -22514,6 +22722,7 @@ return /******/ (function(modules) { // webpackBootstrap
       throw new SyntaxError('Constructor must be called with the new operator');
     }
 
+    this._determineBrowserMethod();
     this._initializeMixinLoaders();
 
     // create variables and set default values
@@ -22522,8 +22731,9 @@ return /******/ (function(modules) { // webpackBootstrap
     // render and calculation settings
     this.renderRefreshRate = 60;                         // hz (fps)
     this.renderTimestep = 1000 / this.renderRefreshRate; // ms -- saves calculation later on
-    this.renderTime = 0.5 * this.renderTimestep;         // measured time it takes to render a frame
-    this.maxPhysicsTicksPerRender = 3;                   // max amount of physics ticks per render step.
+    this.renderTime = 0;                                 // measured time it takes to render a frame
+    this.physicsTime = 0;                                 // measured time it takes to render a frame
+    this.runDoubleSpeed = false;
     this.physicsDiscreteStepsize = 0.50;                 // discrete stepsize of the simulation
 
     this.initializing = true;
@@ -22558,9 +22768,6 @@ return /******/ (function(modules) { // webpackBootstrap
             background: '#D2E5FF'
           }
         },
-        borderColor: '#2B7CE9',
-        backgroundColor: '#97C2FC',
-        highlightColor: '#D2E5FF',
         group: undefined,
         borderWidth: 1,
         borderWidthSelected: undefined
@@ -22717,7 +22924,7 @@ return /******/ (function(modules) { // webpackBootstrap
     var network = this;
     this.groups = new Groups(); // object with groups
     this.images = new Images(); // object with images
-    this.images.setOnloadCallback(function () {
+    this.images.setOnloadCallback(function (status) {
       network._redraw();
     });
 
@@ -22830,6 +23037,25 @@ return /******/ (function(modules) { // webpackBootstrap
 
   // Extend Network with an Emitter mixin
   Emitter(Network.prototype);
+
+  /**
+   * Determine if the browser requires a setTimeout or a requestAnimationFrame. This was required because
+   * some implementations (safari and IE9) did not support requestAnimationFrame
+   * @private
+   */
+  Network.prototype._determineBrowserMethod = function() {
+    var browserType = navigator.userAgent.toLowerCase();
+    this.requiresTimeout = false;
+    if (browserType.indexOf('msie 9.0') != -1) { // IE 9
+      this.requiresTimeout = true;
+    }
+    else if (browserType.indexOf('safari') != -1) {  // safari
+      if (browserType.indexOf('chrome') <= -1) {
+        this.requiresTimeout = true;
+      }
+    }
+  }
+
 
   /**
    * Get the script path where the vis.js library is located
@@ -23052,7 +23278,6 @@ return /******/ (function(modules) { // webpackBootstrap
   Network.prototype.setOptions = function (options) {
     if (options) {
       var prop;
-
       var fields = ['nodes','edges','smoothCurves','hierarchicalLayout','clustering','navigation',
         'keyboard','dataManipulation','onAdd','onEdit','onEditEdge','onConnect','onDelete','clickToUse'
       ];
@@ -23154,8 +23379,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
       if ('clickToUse' in options) {
         if (options.clickToUse) {
-          this.activator = new Activator(this.frame);
-          this.activator.on('change', this._createKeyBinds.bind(this));
+          if (!this.activator) {
+            this.activator = new Activator(this.frame);
+            this.activator.on('change', this._createKeyBinds.bind(this));
+          }
         }
         else {
           if (this.activator) {
@@ -23168,24 +23395,25 @@ return /******/ (function(modules) { // webpackBootstrap
       if (options.labels) {
         throw new Error('Option "labels" is deprecated. Use options "locale" and "locales" instead.');
       }
+
+      // (Re)loading the mixins that can be enabled or disabled in the options.
+      // load the force calculation functions, grouped under the physics system.
+      this._loadPhysicsSystem();
+      // load the navigation system.
+      this._loadNavigationControls();
+      // load the data manipulation system
+      this._loadManipulationSystem();
+      // configure the smooth curves
+      this._configureSmoothCurves();
+
+
+      // bind keys. If disabled, this will not do anything;
+      this._createKeyBinds();
+
+      this.setSize(this.constants.width, this.constants.height);
+      this.moving = true;
+      this.start();
     }
-
-    // (Re)loading the mixins that can be enabled or disabled in the options.
-    // load the force calculation functions, grouped under the physics system.
-    this._loadPhysicsSystem();
-    // load the navigation system.
-    this._loadNavigationControls();
-    // load the data manipulation system
-    this._loadManipulationSystem();
-    // configure the smooth curves
-    this._configureSmoothCurves();
-
-
-    // bind keys. If disabled, this will not do anything;
-    this._createKeyBinds();
-    this.setSize(this.constants.width, this.constants.height);
-    this.moving = true;
-    this.start();
   };
 
 
@@ -23212,10 +23440,8 @@ return /******/ (function(modules) { // webpackBootstrap
   //////////////////////////////////////////////////////////////////
 
     this.frame.canvas = document.createElement("canvas");
-
     this.frame.canvas.style.position = 'relative';
     this.frame.appendChild(this.frame.canvas);
-
 
     if (!this.frame.canvas.getContext) {
       var noCanvas = document.createElement( 'DIV' );
@@ -23226,16 +23452,12 @@ return /******/ (function(modules) { // webpackBootstrap
       this.frame.canvas.appendChild(noCanvas);
     }
     else {
-
       var ctx = this.frame.canvas.getContext("2d");
-
       this.pixelRatio = (window.devicePixelRatio || 1) / (ctx.webkitBackingStorePixelRatio ||
                 ctx.mozBackingStorePixelRatio ||
                 ctx.msBackingStorePixelRatio ||
                 ctx.oBackingStorePixelRatio ||
                 ctx.backingStorePixelRatio || 1);
-
-
 
       this.frame.canvas.getContext("2d").setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
     }
@@ -23264,7 +23486,7 @@ return /******/ (function(modules) { // webpackBootstrap
     this.hammerFrame = Hammer(this.frame, {
       prevent_default: true
     });
-    this.hammerFrame.on('release',   me._onRelease.bind(me) );
+    this.hammerFrame.on('release', me._onRelease.bind(me) );
 
     // add the frame to the container element
     this.containerElement.appendChild(this.frame);
@@ -23318,8 +23540,20 @@ return /******/ (function(modules) { // webpackBootstrap
     }
   };
 
-
+  /**
+   * Cleans up all bindings of the network, removing it fully from the memory IF the variable is set to null after calling this function.
+   * var network = new vis.Network(..);
+   * network.destroy();
+   * network = null;
+   */
   Network.prototype.destroy = function() {
+    this.start = function () {};
+    this.redraw = function () {};
+    this.timer = false;
+
+    // cleanup physicsConfiguration if it exists
+    this._cleanupPhysicsConfiguration();
+
     // remove keybindings
     this.keycharm.reset();
 
@@ -23329,9 +23563,15 @@ return /******/ (function(modules) { // webpackBootstrap
     // clear events
     this.off();
 
-
+    this._recursiveDOMDelete(this.containerElement);
   }
 
+  Network.prototype._recursiveDOMDelete = function(DOMobject) {
+    while (DOMobject.hasChildNodes() == true) {
+      this._recursiveDOMDelete(DOMobject.firstChild);
+      DOMobject.removeChild(DOMobject.firstChild);
+    }
+  }
 
   /**
    * Get the pointer location from a touch location
@@ -23767,6 +24007,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
     var id;
     var lastPopupNode = this.popupObj;
+    var nodeUnderCursor = false;
 
     if (this.popupObj == undefined) {
       // search the nodes for overlap, select the top one in case of multiple nodes
@@ -23774,15 +24015,19 @@ return /******/ (function(modules) { // webpackBootstrap
       for (id in nodes) {
         if (nodes.hasOwnProperty(id)) {
           var node = nodes[id];
-          if (node.getTitle() !== undefined && node.isOverlappingWith(obj)) {
-            this.popupObj = node;
-            break;
+          if (node.isOverlappingWith(obj)) {
+            if (node.getTitle() !== undefined) {
+              this.popupObj = node;
+              break;
+            }
+            // if you hover over a node, the title of the edge is not supposed to be shown.
+            nodeUnderCursor = true;
           }
         }
       }
     }
 
-    if (this.popupObj === undefined) {
+    if (this.popupObj === undefined && nodeUnderCursor == false) {
       // search the edges for overlap
       var edges = this.edges;
       for (id in edges) {
@@ -24590,6 +24835,23 @@ return /******/ (function(modules) { // webpackBootstrap
     return false;
   };
 
+
+  Network.prototype._revertPhysicsState = function() {
+    var nodes = this.nodes;
+    for (var nodeId in nodes) {
+      if (nodes.hasOwnProperty(nodeId)) {
+        nodes[nodeId].revertPosition();
+      }
+    }
+  }
+
+  Network.prototype._revertPhysicsTick = function() {
+    this._doInAllActiveSectors("_revertPhysicsState");
+    if (this.constants.smoothCurves.enabled == true && this.constants.smoothCurves.dynamic == true) {
+      this._doInSupportSector("_revertPhysicsState");
+    }
+  }
+
   /**
    * A single simulation step (or "tick") in the physics simulation
    *
@@ -24606,11 +24868,23 @@ return /******/ (function(modules) { // webpackBootstrap
         if (this.constants.smoothCurves.enabled == true && this.constants.smoothCurves.dynamic == true) {
           supportMovingStatus = this._doInSupportSector("_discreteStepNodes");
         }
+
         // gather movement data from all sectors, if one moves, we are NOT stabilzied
         for (var i = 0; i < mainMoving.length; i++) {mainMovingStatus = mainMoving[0] || mainMovingStatus;}
 
         // determine if the network has stabilzied
         this.moving = mainMovingStatus || supportMovingStatus;
+
+        if (this.moving == false) {
+          this._revertPhysicsTick();
+        }
+        else {
+          // this is here to ensure that there is no start event when the network is already stable.
+          if (this.startedStabilization == false) {
+            this.emit("startStabilization");
+            this.startedStabilization = true;
+          }
+        }
 
         this.stabilizationIterations++;
       }
@@ -24627,26 +24901,30 @@ return /******/ (function(modules) { // webpackBootstrap
   Network.prototype._animationStep = function() {
     // reset the timer so a new scheduled animation step can be set
     this.timer = undefined;
+
     // handle the keyboad movement
     this._handleNavigation();
 
+    var startTime = Date.now();
+    this._physicsTick();
+    var physicsTime = Date.now() - startTime;
+
+    // run double speed if it is a little graph
+    if ((this.renderTimestep - this.renderTime > 2 * physicsTime || this.runDoubleSpeed == true)  && this.moving == true) {
+      this._physicsTick();
+
+      // this makes sure there is no jitter. The decision is taken once to run it at double speed.
+      if (this.renderTime != 0) {
+        this.runDoubleSpeed = true
+      }
+    }
+
+    var renderStartTime = Date.now();
+    this._redraw();
+    this.renderTime = Date.now() - renderStartTime;
+
     // this schedules a new animation step
     this.start();
-
-    // start the physics simulation
-    var calculationTime = Date.now();
-    var maxSteps = 1;
-    this._physicsTick();
-    var timeRequired = Date.now() - calculationTime;
-    while (timeRequired < 0.9*(this.renderTimestep - this.renderTime) && maxSteps < this.maxPhysicsTicksPerRender) {
-      this._physicsTick();
-      timeRequired = Date.now() - calculationTime;
-      maxSteps++;
-    }
-    // start the rendering process
-    var renderTime = Date.now();
-    this._redraw();
-    this.renderTime = Date.now() - renderTime;
   };
 
   if (typeof window !== 'undefined') {
@@ -24659,35 +24937,19 @@ return /******/ (function(modules) { // webpackBootstrap
    */
   Network.prototype.start = function() {
     if (this.moving == true || this.xIncrement != 0 || this.yIncrement != 0 || this.zoomIncrement != 0) {
-      if (this.startedStabilization == false) {
-        this.emit("startStabilization");
-        this.startedStabilization = true;
-      }
-
       if (!this.timer) {
-        var ua = navigator.userAgent.toLowerCase();
-
-        var requiresTimeout = false;
-        if (ua.indexOf('msie 9.0') != -1) { // IE 9
-          requiresTimeout = true;
-        }
-        else if (ua.indexOf('safari') != -1) {  // safari
-          if (ua.indexOf('chrome') <= -1) {
-            requiresTimeout = true;
-          }
-        }
-
-        if (requiresTimeout == true) {
+        if (this.requiresTimeout == true) {
           this.timer = window.setTimeout(this._animationStep.bind(this), this.renderTimestep); // wait this.renderTimeStep milliseconds and perform the animation step function
         }
-        else{
-          this.timer = window.requestAnimationFrame(this._animationStep.bind(this), this.renderTimestep); // wait this.renderTimeStep milliseconds and perform the animation step function
+        else {
+          this.timer = window.requestAnimationFrame(this._animationStep.bind(this)); // wait this.renderTimeStep milliseconds and perform the animation step function
         }
       }
     }
     else {
       this._redraw();
-      if (this.stabilizationIterations > 0) {
+      // this check is to ensure that the network does not emit these events if it was already stabilized and setOptions is called (setting moving to true and calling start())
+      if (this.stabilizationIterations > 1) {
         // trigger the "stabilized" event.
         // The event is triggered on the next tick, to prevent the case that
         // it is fired while initializing the Network, in which case you would not
@@ -24696,11 +24958,14 @@ return /******/ (function(modules) { // webpackBootstrap
         var params = {
           iterations: me.stabilizationIterations
         };
-        me.stabilizationIterations = 0;
-        me.startedStabilization = false;
+        this.stabilizationIterations = 0;
+        this.startedStabilization = false;
         setTimeout(function () {
           me.emit("stabilized", params);
         }, 0);
+      }
+      else {
+        this.stabilizationIterations = 0;
       }
     }
   };
@@ -24999,7 +25264,10 @@ return /******/ (function(modules) { // webpackBootstrap
     }
   };
 
-
+  /**
+   * used to animate smoothly by hijacking the redraw function.
+   * @private
+   */
   Network.prototype._lockedRedraw = function () {
     var nodePosition = {x: this.nodes[this.lockedOnNodeId].x, y: this.nodes[this.lockedOnNodeId].y};
     var viewCenter = this.DOMtoCanvas({x: 0.5 * this.frame.canvas.clientWidth, y: 0.5 * this.frame.canvas.clientHeight});
@@ -25096,6 +25364,13 @@ return /******/ (function(modules) { // webpackBootstrap
   Network.prototype.getCenterCoordinates = function () {
     return this.DOMtoCanvas({x: 0.5 * this.frame.canvas.clientWidth, y: 0.5 * this.frame.canvas.clientHeight});
   };
+
+
+  Network.prototype.getBoundingBox = function(nodeId) {
+    if (this.nodes[nodeId] !== undefined) {
+      return this.nodes[nodeId].boundingBox;
+    }
+  }
 
   module.exports = Network;
 
@@ -26077,9 +26352,6 @@ return /******/ (function(modules) { // webpackBootstrap
    */
   Groups.prototype.add = function (groupname, style) {
     this.groups[groupname] = style;
-    if (style.color) {
-      style.color = util.parseColor(style.color);
-    }
     return style;
   };
 
@@ -26096,7 +26368,6 @@ return /******/ (function(modules) { // webpackBootstrap
    */
   function Images() {
     this.images = {};
-
     this.callback = undefined;
   }
 
@@ -26117,24 +26388,39 @@ return /******/ (function(modules) { // webpackBootstrap
    */
   Images.prototype.load = function(url, brokenUrl) {
     var img = this.images[url];
-    if (img == undefined) {
+    if (img === undefined) {
       // create the image
-      var images = this;
+      var me = this;
       img = new Image();
-      this.images[url] = img;
-      img.onload = function() {
-        if (images.callback) {
-          images.callback(this);
+      img.onload = function () {
+
+        // IE11 fix -- thanks dponch!
+        if (this.width == 0) {
+          document.body.appendChild(this);
+          this.width = this.offsetWidth;
+          this.height = this.offsetHeight;
+          document.body.removeChild(this);
+        }
+
+        if (me.callback) {
+          me.images[url] = img;
+          me.callback(this);
         }
       };
-      
+
       img.onerror = function () {
-      this.src = brokenUrl;
-      if (images.callback) {
-      images.callback(this);
-      }
-    };
-    
+        if (brokenUrl === undefined) {
+          console.error("Could not load image:", url);
+          delete this.src;
+          if (me.callback) {
+            me.callback(this);
+          }
+        }
+        else {
+          this.src = brokenUrl;
+        }
+      };
+
       img.src = url;
     }
 
@@ -26190,8 +26476,6 @@ return /******/ (function(modules) { // webpackBootstrap
 
     // set defaults for the properties
     this.id = undefined;
-    this.x = null;
-    this.y = null;
     this.allowedToMoveX = false;
     this.allowedToMoveY = false;
     this.xFixed = false;
@@ -26214,6 +26498,12 @@ return /******/ (function(modules) { // webpackBootstrap
     this.fy = 0.0;  // external force y
     this.vx = 0.0;  // velocity x
     this.vy = 0.0;  // velocity y
+    this.x = null;
+    this.y = null;
+
+    // used for reverting to previous position on stabilization
+    this.previousState = {vx:0,vy:0,x:0,y:0};
+
     this.damping = networkConstants.physics.damping; // written every time gravity is calculated
     this.fixedData = {x:null,y:null};
 
@@ -26236,6 +26526,18 @@ return /******/ (function(modules) { // webpackBootstrap
     this.canvasBottomRight = {"x":  300, "y":  300};
     this.parentEdgeId = null;
   }
+
+
+  /**
+   *  Revert the position and velocity of the previous step.
+   */
+  Node.prototype.revertPosition = function() {
+    this.x = this.previousState.x;
+    this.y = this.previousState.y;
+    this.vx = this.previousState.vx;
+    this.vy = this.previousState.vy;
+  }
+
 
   /**
    * (re)setting the clustering variables and objects
@@ -26316,19 +26618,18 @@ return /******/ (function(modules) { // webpackBootstrap
     // copy group properties
     if (typeof this.options.group === 'number' || (typeof this.options.group === 'string' && this.options.group != '')) {
       var groupObj = this.grouplist.get(this.options.group);
-      for (var prop in groupObj) {
-        if (groupObj.hasOwnProperty(prop)) {
-          this.options[prop] = groupObj[prop];
-        }
-      }
+      util.deepExtend(this.options, groupObj);
+      // the color object needs to be completely defined. Since groups can partially overwrite the colors, we parse it again, just in case.
+      this.options.color = util.parseColor(this.options.color);
     }
-
+    else if (properties.color === undefined) {
+      this.options.color = constants.nodes.color;
+    }
 
     // individual shape properties
     if (properties.radius !== undefined)         {this.baseRadiusValue = this.options.radius;}
     if (properties.color !== undefined)          {this.options.color = util.parseColor(properties.color);}
-
-    if (this.options.image!== undefined && this.options.image!= "") {
+    if (this.options.image !== undefined && this.options.image!= "") {
       if (this.imagelist) {
         this.imageObj = this.imagelist.load(this.options.image, this.options.brokenImage);
       }
@@ -26356,12 +26657,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
     this.radiusFixed = this.radiusFixed || (properties.radius !== undefined);
 
-    if (this.options.shape == 'image') {
+    if (this.options.shape === 'image' || this.options.shape === 'circularImage') {
       this.options.radiusMin = constants.nodes.widthMin;
       this.options.radiusMax = constants.nodes.widthMax;
     }
-
-
 
     // choose draw method depending on the shape
     switch (this.options.shape) {
@@ -26371,6 +26670,7 @@ return /******/ (function(modules) { // webpackBootstrap
       case 'ellipse':       this.draw = this._drawEllipse; this.resize = this._resizeEllipse; break;
       // TODO: add diamond shape
       case 'image':         this.draw = this._drawImage; this.resize = this._resizeImage; break;
+      case 'circularImage': this.draw = this._drawCircularImage; this.resize = this._resizeCircularImage; break;
       case 'text':          this.draw = this._drawText; this.resize = this._resizeText; break;
       case 'dot':           this.draw = this._drawDot; this.resize = this._resizeShape; break;
       case 'square':        this.draw = this._drawSquare; this.resize = this._resizeShape; break;
@@ -26495,10 +26795,21 @@ return /******/ (function(modules) { // webpackBootstrap
   };
 
   /**
+   * Store the state before the next step
+   */
+  Node.prototype.storeState = function() {
+    this.previousState.x = this.x;
+    this.previousState.y = this.y;
+    this.previousState.vx = this.vx;
+    this.previousState.vy = this.vy;
+  }
+
+  /**
    * Perform one discrete step for the node
    * @param {number} interval    Time interval in seconds
    */
   Node.prototype.discreteStep = function(interval) {
+    this.storeState();
     if (!this.xFixed) {
       var dx   = this.damping * this.vx;     // damping force
       var ax   = (this.fx - dx) / this.options.mass;  // acceleration
@@ -26530,6 +26841,7 @@ return /******/ (function(modules) { // webpackBootstrap
    * @param {number} maxVelocity The speed limit imposed on the velocity
    */
   Node.prototype.discreteStepLimited = function(interval, maxVelocity) {
+    this.storeState();
     if (!this.xFixed) {
       var dx   = this.damping * this.vx;     // damping force
       var ax   = (this.fx - dx) / this.options.mass;  // acceleration
@@ -26687,13 +26999,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
   };
 
-  Node.prototype._drawImage = function (ctx) {
-    this._resizeImage(ctx);
-
-    this.left   = this.x - this.width / 2;
-    this.top    = this.y - this.height / 2;
-
-    var yLabel;
+  Node.prototype._drawImageAtPosition = function (ctx) {
     if (this.imageObj.width != 0 ) {
       // draw the shade
       if (this.clusterSize > 1) {
@@ -26708,6 +27014,12 @@ return /******/ (function(modules) { // webpackBootstrap
       // draw the image
       ctx.globalAlpha = 1.0;
       ctx.drawImage(this.imageObj, this.left, this.top, this.width, this.height);
+    }
+  };
+
+  Node.prototype._drawImageLabel = function (ctx) {
+    var yLabel;
+    if (this.imageObj.width != 0 ) {
       yLabel = this.y + this.height / 2;
     }
     else {
@@ -26715,18 +27027,63 @@ return /******/ (function(modules) { // webpackBootstrap
       yLabel = this.y;
     }
 
+    this._label(ctx, this.label, this.x, yLabel, undefined, 'hanging');
+  };
+
+  Node.prototype._drawImage = function (ctx) {
+    this._resizeImage(ctx);
+    this.left   = this.x - this.width / 2;
+    this.top    = this.y - this.height / 2;
+
+    this._drawImageAtPosition(ctx);
 
     this.boundingBox.top = this.top;
     this.boundingBox.left = this.left;
     this.boundingBox.right = this.left + this.width;
     this.boundingBox.bottom = this.top + this.height;
 
-    this._label(ctx, this.label, this.x, yLabel, undefined, "top");
+    this._drawImageLabel(ctx);
     this.boundingBox.left = Math.min(this.boundingBox.left, this.labelDimensions.left);
     this.boundingBox.right = Math.max(this.boundingBox.right, this.labelDimensions.left + this.labelDimensions.width);
     this.boundingBox.bottom = Math.max(this.boundingBox.bottom, this.boundingBox.bottom + this.labelDimensions.height);
   };
 
+  Node.prototype._resizeCircularImage = function (ctx) {
+    this._resizeImage(ctx);
+  };
+
+  Node.prototype._drawCircularImage = function (ctx) {
+    this._resizeCircularImage(ctx);
+
+    this.left   = this.x - this.width / 2;
+    this.top    = this.y - this.height / 2;
+    
+    var centerX = this.left + (this.width / 2);
+    var centerY = this.top + (this.height / 2);
+    var radius = Math.abs(this.height / 2);
+
+    this._drawRawCircle(ctx, centerX, centerY, radius);
+
+    ctx.save();
+    ctx.circle(this.x, this.y, radius);
+    ctx.stroke();
+    ctx.clip();
+
+    this._drawImageAtPosition(ctx);
+
+    ctx.restore();
+
+    this.boundingBox.top = this.y - this.options.radius;
+    this.boundingBox.left = this.x - this.options.radius;
+    this.boundingBox.right = this.x + this.options.radius;
+    this.boundingBox.bottom = this.y + this.options.radius;
+
+    this._drawImageLabel(ctx); 
+    
+    this.boundingBox.left = Math.min(this.boundingBox.left, this.labelDimensions.left);
+    this.boundingBox.right = Math.max(this.boundingBox.right, this.labelDimensions.left + this.labelDimensions.width);
+    this.boundingBox.bottom = Math.max(this.boundingBox.bottom, this.boundingBox.bottom + this.labelDimensions.height);
+  };
 
   Node.prototype._resizeBox = function (ctx) {
     if (!this.width) {
@@ -26768,7 +27125,7 @@ return /******/ (function(modules) { // webpackBootstrap
     ctx.lineWidth *= this.networkScaleInv;
     ctx.lineWidth = Math.min(this.width,ctx.lineWidth);
 
-    ctx.fillStyle = this.selected ? this.options.color.highlight.background : this.options.color.background;
+    ctx.fillStyle = this.selected ? this.options.color.highlight.background : this.hover ? this.options.color.hover.background : this.options.color.background;
 
     ctx.roundRect(this.left, this.top, this.width, this.height, this.options.radius);
     ctx.fill();
@@ -26855,15 +27212,11 @@ return /******/ (function(modules) { // webpackBootstrap
     }
   };
 
-  Node.prototype._drawCircle = function (ctx) {
-    this._resizeCircle(ctx);
-    this.left = this.x - this.width / 2;
-    this.top = this.y - this.height / 2;
-
+  Node.prototype._drawRawCircle = function (ctx, x, y, radius) {
     var clusterLineWidth = 2.5;
     var borderWidth = this.options.borderWidth;
     var selectionLineWidth = this.options.borderWidthSelected || 2 * this.options.borderWidth;
-
+      
     ctx.strokeStyle = this.selected ? this.options.color.highlight.border : this.hover ? this.options.color.hover.border : this.options.color.border;
 
     // draw the outer border
@@ -26872,7 +27225,7 @@ return /******/ (function(modules) { // webpackBootstrap
       ctx.lineWidth *= this.networkScaleInv;
       ctx.lineWidth = Math.min(this.width,ctx.lineWidth);
 
-      ctx.circle(this.x, this.y, this.options.radius+2*ctx.lineWidth);
+      ctx.circle(x, y, radius+2*ctx.lineWidth);
       ctx.stroke();
     }
     ctx.lineWidth = (this.selected ? selectionLineWidth : borderWidth) + ((this.clusterSize > 1) ? clusterLineWidth : 0.0);
@@ -26880,9 +27233,17 @@ return /******/ (function(modules) { // webpackBootstrap
     ctx.lineWidth = Math.min(this.width,ctx.lineWidth);
 
     ctx.fillStyle = this.selected ? this.options.color.highlight.background : this.hover ? this.options.color.hover.background : this.options.color.background;
-    ctx.circle(this.x, this.y, this.options.radius);
+    ctx.circle(this.x, this.y, radius);
     ctx.fill();
     ctx.stroke();
+  };
+
+  Node.prototype._drawCircle = function (ctx) {
+    this._resizeCircle(ctx);
+    this.left = this.x - this.width / 2;
+    this.top = this.y - this.height / 2;
+
+    this._drawRawCircle(ctx, this.x, this.y, this.options.radius);
 
     this.boundingBox.top = this.y - this.options.radius;
     this.boundingBox.left = this.x - this.options.radius;
@@ -27029,7 +27390,7 @@ return /******/ (function(modules) { // webpackBootstrap
     this.boundingBox.bottom = this.y + this.options.radius;
 
     if (this.label) {
-      this._label(ctx, this.label, this.x, this.y + this.height / 2, undefined, 'top',true);
+      this._label(ctx, this.label, this.x, this.y + this.height / 2, undefined, 'hanging',true);
       this.boundingBox.left = Math.min(this.boundingBox.left, this.labelDimensions.left);
       this.boundingBox.right = Math.max(this.boundingBox.right, this.labelDimensions.left + this.labelDimensions.width);
       this.boundingBox.bottom = Math.max(this.boundingBox.bottom, this.boundingBox.bottom + this.labelDimensions.height);
@@ -27071,7 +27432,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
       var lines = text.split('\n');
       var lineCount = lines.length;
-      var fontSize = (Number(this.options.fontSize) + 4); // TODO: why is this +4 ?
+      var fontSize = Number(this.options.fontSize);
       var yLine = y + (1 - lineCount) / 2 * fontSize;
       if (labelUnderNode == true) {
         yLine = y + (1 - lineCount) / (2 * fontSize);
@@ -27086,8 +27447,10 @@ return /******/ (function(modules) { // webpackBootstrap
       var height = this.options.fontSize * lineCount;
       var left = x - width / 2;
       var top = y - height / 2;
-      if (baseline == "top") {
+      if (baseline == "hanging") {
         top += 0.5 * fontSize;
+        top += 3;   // distance from node, required because we use hanging. Hanging has less difference between browsers
+        yLine += 3; // distance from node
       }
       this.labelDimensions = {top:top,left:left,width:width,height:height,yLine:yLine};
 
@@ -27826,7 +28189,8 @@ return /******/ (function(modules) { // webpackBootstrap
 
     var via = null;
     // only firefox and chrome support this method, else we use the legacy one.
-    if (ctx.mozDash !== undefined || ctx.setLineDash !== undefined) {
+    if (ctx.setLineDash !== undefined) {
+      ctx.save();
       // configure the dash pattern
       var pattern = [0];
       if (this.options.dash.length !== undefined && this.options.dash.gap !== undefined) {
@@ -27837,27 +28201,16 @@ return /******/ (function(modules) { // webpackBootstrap
       }
 
       // set dash settings for chrome or firefox
-      if (typeof ctx.setLineDash !== 'undefined') { //Chrome
-        ctx.setLineDash(pattern);
-        ctx.lineDashOffset = 0;
-
-      } else { //Firefox
-        ctx.mozDash = pattern;
-        ctx.mozDashOffset = 0;
-      }
+      ctx.setLineDash(pattern);
+      ctx.lineDashOffset = 0;
 
       // draw the line
       via = this._line(ctx);
 
       // restore the dash settings.
-      if (typeof ctx.setLineDash !== 'undefined') { //Chrome
-        ctx.setLineDash([0]);
-        ctx.lineDashOffset = 0;
-
-      } else { //Firefox
-        ctx.mozDash = [0];
-        ctx.mozDashOffset = 0;
-      }
+      ctx.setLineDash([0]);
+      ctx.lineDashOffset = 0;
+      ctx.restore();
     }
     else { // unsupporting smooth lines
       // draw dashed line
@@ -28625,6 +28978,9 @@ return /******/ (function(modules) { // webpackBootstrap
     if (this.constants.configurePhysics == true) {
       this._loadPhysicsConfiguration();
     }
+    else {
+      this._cleanupPhysicsConfiguration();
+    }
   };
 
 
@@ -29084,6 +29440,17 @@ return /******/ (function(modules) { // webpackBootstrap
   };
 
 
+  exports._cleanupPhysicsConfiguration = function() {
+    if (this.physicsConfiguration !== undefined) {
+      while (this.physicsConfiguration.hasChildNodes()) {
+        this.physicsConfiguration.removeChild(this.physicsConfiguration.firstChild);
+      }
+
+      this.physicsConfiguration.parentNode.removeChild(this.physicsConfiguration);
+      this.physicsConfiguration = undefined;
+    }
+  }
+
   /**
    * Load the HTML for the physics config and bind it
    * @private
@@ -29487,6 +29854,8 @@ return /******/ (function(modules) { // webpackBootstrap
   }
 
 
+
+
 /***/ },
 /* 61 */
 /***/ function(module, exports, __webpack_require__) {
@@ -29533,10 +29902,9 @@ return /******/ (function(modules) { // webpackBootstrap
           else {
             repulsingForce = a * distance + b; // linear approx of  1 / (1 + Math.exp((distance / minimumDistance - 1) * steepness))
           }
-
           // amplify the repulsion for clusters.
           repulsingForce *= (combinedClusterSize == 0) ? 1 : 1 + combinedClusterSize * this.constants.clustering.forceAmplification;
-          repulsingForce = repulsingForce / distance;
+          repulsingForce = repulsingForce / Math.max(distance,0.01*minimumDistance);
 
           fx = dx * repulsingForce;
           fy = dy * repulsingForce;
@@ -29545,6 +29913,7 @@ return /******/ (function(modules) { // webpackBootstrap
           node1.fy -= fy;
           node2.fx += fx;
           node2.fy += fy;
+
         }
       }
     }
@@ -32545,9 +32914,7 @@ return /******/ (function(modules) { // webpackBootstrap
    * @private
    */
   exports._clearManipulatorBar = function() {
-    while (this.manipulationDiv.hasChildNodes()) {
-      this.manipulationDiv.removeChild(this.manipulationDiv.firstChild);
-    }
+    this._recursiveDOMDelete(this.manipulationDiv);
     this.manipulationDOM = {};
 
     this._manipulationReleaseOverload = function () {};
@@ -32567,6 +32934,7 @@ return /******/ (function(modules) { // webpackBootstrap
     for (var functionName in this.cachedFunctions) {
       if (this.cachedFunctions.hasOwnProperty(functionName)) {
         this[functionName] = this.cachedFunctions[functionName];
+        delete this.cachedFunctions[functionName];
       }
     }
   };
@@ -32712,7 +33080,8 @@ return /******/ (function(modules) { // webpackBootstrap
       }
       this.closeDiv.onclick = this._toggleEditMode.bind(this);
 
-      this.boundFunction = this._createManipulatorBar.bind(this);
+      var me = this;
+      this.boundFunction = me._createManipulatorBar;
       this.on('select', this.boundFunction);
     }
     else {
@@ -32775,7 +33144,8 @@ return /******/ (function(modules) { // webpackBootstrap
     this.manipulationDOM['backSpan'].onclick = this._createManipulatorBar.bind(this);
 
     // we use the boundFunction so we can reference it when we unbind it from the "select" event.
-    this.boundFunction = this._addNode.bind(this);
+    var me = this;
+    this.boundFunction = me._addNode;
     this.on('select', this.boundFunction);
   };
 
@@ -32824,10 +33194,11 @@ return /******/ (function(modules) { // webpackBootstrap
     this.manipulationDiv.appendChild(this.manipulationDOM['descriptionSpan']);
 
     // bind the icon
-    this.manipulationDOM['backSpan'].onclick = this._createManipulatorBar.bind(this);
+    var me = this; // we use me so we don't have to use bind(this). If we use bind, we cannot clean up after it.
+    this.manipulationDOM['backSpan'].onclick = me._createManipulatorBar;
 
     // we use the boundFunction so we can reference it when we unbind it from the "select" event.
-    this.boundFunction = this._handleConnect.bind(this);
+    this.boundFunction = me._handleConnect;
     this.on('select', this.boundFunction);
 
     // temporarily overload functions
