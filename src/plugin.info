@@ -2,7 +2,7 @@
   "title": "$:/plugins/felixhayashi/vis",
   "description": "vis.js plugin for TiddlyWiki5",
   "author": "Felix Küppers",
-  "version": "3.7.2-prerelease",
+  "version": "3.8.1-SNAPSHOT",
   "core-version": ">=5.0.0",
   "source": "https://github.com/felixhayashi/TW5-Vis.js",
   "type": "application/json",
