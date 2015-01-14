@@ -5,7 +5,7 @@
  * A dynamic, browser-based visualization library.
  *
  * @version 3.8.1-SNAPSHOT
- * @date    2015-01-13
+ * @date    2015-01-14
  *
  * @license
  * Copyright (C) 2011-2014 Almende B.V, http://almende.com
@@ -14018,8 +14018,7 @@ return /******/ (function(modules) { // webpackBootstrap
         this.redraw();
       }
       else {
-        console.log('WARNING: infinite loop in redraw?')
-        throw new Error("bla")
+        console.log('WARNING: infinite loop in redraw?');
       }
       this.redrawCount = 0;
     }
@@ -22874,7 +22873,7 @@ return /******/ (function(modules) { // webpackBootstrap
         levelSeparation: 150,
         nodeSpacing: 100,
         direction: "UD",   // UD, DU, LR, RL
-        layout: "hubsize" // hubsize, directed
+        layout: "hubsize" // hubsize, directed, uniqueDirected
       },
       freezeForStabilization: false,
       smoothCurves: {
@@ -24029,33 +24028,43 @@ return /******/ (function(modules) { // webpackBootstrap
     if (this.popupObj == undefined) {
       // search the nodes for overlap, select the top one in case of multiple nodes
       var nodes = this.nodes;
+      var overlappingNodes = [];
       for (id in nodes) {
         if (nodes.hasOwnProperty(id)) {
           var node = nodes[id];
           if (node.isOverlappingWith(obj)) {
             if (node.getTitle() !== undefined) {
-              this.popupObj = node;
-              break;
+              overlappingNodes.push(id);
             }
-            // if you hover over a node, the title of the edge is not supposed to be shown.
-            nodeUnderCursor = true;
           }
         }
+      }
+
+      if (overlappingNodes.length > 0) {
+        // if there are overlapping nodes, select the last one, this is the
+        // one which is drawn on top of the others
+        this.popupObj = this.nodes[overlappingNodes[overlappingNodes.length - 1]];
+        // if you hover over a node, the title of the edge is not supposed to be shown.
+        nodeUnderCursor = true;
       }
     }
 
     if (this.popupObj === undefined && nodeUnderCursor == false) {
       // search the edges for overlap
       var edges = this.edges;
+      var overlappingEdges = [];
       for (id in edges) {
         if (edges.hasOwnProperty(id)) {
           var edge = edges[id];
           if (edge.connected && (edge.getTitle() !== undefined) &&
               edge.isOverlappingWith(obj)) {
-            this.popupObj = edge;
-            break;
+            overlappingEdges.push(id);
           }
         }
+      }
+
+      if (overlappingEdges.length > 0) {
+        this.popupObj = this.edges[overlappingEdges[overlappingEdges.length - 1]];
       }
     }
 
@@ -26639,9 +26648,6 @@ return /******/ (function(modules) { // webpackBootstrap
       // the color object needs to be completely defined. Since groups can partially overwrite the colors, we parse it again, just in case.
       this.options.color = util.parseColor(this.options.color);
     }
-    else if (properties.color === undefined) {
-      this.options.color = constants.nodes.color;
-    }
 
     // individual shape properties
     if (properties.radius !== undefined)         {this.baseRadiusValue = this.options.radius;}
@@ -28419,7 +28425,6 @@ return /******/ (function(modules) { // webpackBootstrap
     var threshold = 0.2;
     var node = this.to;
     if (from == true) {
-
       node = this.from;
     }
 
@@ -28702,26 +28707,30 @@ return /******/ (function(modules) { // webpackBootstrap
         var nodeIdFrom = "edgeIdFrom:".concat(this.id);
         var nodeIdTo = "edgeIdTo:".concat(this.id);
         var constants = {
-                        nodes:{group:'', radius:8},
+                        nodes:{group:'', radius:7, borderWidth:2, borderWidthSelected: 2},
                         physics:{damping:0},
                         clustering: {maxNodeSizeIncrements: 0 ,nodeScaling: {width:0, height: 0, radius:0}}
                         };
         this.controlNodes.from = new Node(
           {id:nodeIdFrom,
             shape:'dot',
-              color:{background:'#ff4e00', border:'#3c3c3c', highlight: {background:'#07f968'}}
+              color:{background:'#ff0000', border:'#3c3c3c', highlight: {background:'#07f968'}}
           },{},{},constants);
         this.controlNodes.to = new Node(
           {id:nodeIdTo,
             shape:'dot',
-            color:{background:'#ff4e00', border:'#3c3c3c', highlight: {background:'#07f968'}}
+            color:{background:'#ff0000', border:'#3c3c3c', highlight: {background:'#07f968'}}
           },{},{},constants);
       }
 
-      if (this.controlNodes.from.selected == false && this.controlNodes.to.selected == false) {
-        this.controlNodes.positions = this.getControlNodePositions(ctx);
+      this.controlNodes.positions = {};
+      if (this.controlNodes.from.selected == false) {
+        this.controlNodes.positions.from = this.getControlNodeFromPosition(ctx);
         this.controlNodes.from.x = this.controlNodes.positions.from.x;
         this.controlNodes.from.y = this.controlNodes.positions.from.y;
+      }
+      if (this.controlNodes.to.selected == false) {
+        this.controlNodes.positions.to = this.getControlNodeToPosition(ctx);
         this.controlNodes.to.x = this.controlNodes.positions.to.x;
         this.controlNodes.to.y = this.controlNodes.positions.to.y;
       }
@@ -28813,46 +28822,56 @@ return /******/ (function(modules) { // webpackBootstrap
    * this calculates the position of the control nodes on the edges of the parent nodes.
    *
    * @param ctx
-   * @returns {{from: {x: number, y: number}, to: {x: *, y: *}}}
+   * @returns {x: *, y: *}
    */
-  Edge.prototype.getControlNodePositions = function(ctx) {
-    var angle = Math.atan2((this.to.y - this.from.y), (this.to.x - this.from.x));
-    var dx = (this.to.x - this.from.x);
-    var dy = (this.to.y - this.from.y);
-    var edgeSegmentLength = Math.sqrt(dx * dx + dy * dy);
-    var fromBorderDist = this.from.distanceToBorder(ctx, angle + Math.PI);
-    var fromBorderPoint = (edgeSegmentLength - fromBorderDist) / edgeSegmentLength;
-    var xFrom = (fromBorderPoint) * this.from.x + (1 - fromBorderPoint) * this.to.x;
-    var yFrom = (fromBorderPoint) * this.from.y + (1 - fromBorderPoint) * this.to.y;
-
-    var via;
-    if (this.options.smoothCurves.dynamic == true && this.options.smoothCurves.enabled == true) {
-      via = this.via;
-    }
-    else if (this.options.smoothCurves.enabled == true) {
-      via = this._getViaCoordinates();
-    }
-
-    if (this.options.smoothCurves.enabled == true && via.x != null) {
-      angle = Math.atan2((this.to.y - via.y), (this.to.x - via.x));
-      dx = (this.to.x - via.x);
-      dy = (this.to.y - via.y);
-      edgeSegmentLength = Math.sqrt(dx * dx + dy * dy);
-    }
-    var toBorderDist = this.to.distanceToBorder(ctx, angle);
-    var toBorderPoint = (edgeSegmentLength - toBorderDist) / edgeSegmentLength;
-
-    var xTo,yTo;
-    if (this.options.smoothCurves.enabled == true && via.x != null) {
-      xTo = (1 - toBorderPoint) * via.x + toBorderPoint * this.to.x;
-      yTo = (1 - toBorderPoint) * via.y + toBorderPoint * this.to.y;
+  Edge.prototype.getControlNodeFromPosition = function(ctx) {
+    // draw arrow head
+    var controlnodeFromPos;
+    if (this.options.smoothCurves.enabled == true) {
+      controlnodeFromPos = this._findBorderPosition(true, ctx);
     }
     else {
-      xTo = (1 - toBorderPoint) * this.from.x + toBorderPoint * this.to.x;
-      yTo = (1 - toBorderPoint) * this.from.y + toBorderPoint * this.to.y;
+      var angle = Math.atan2((this.to.y - this.from.y), (this.to.x - this.from.x));
+      var dx = (this.to.x - this.from.x);
+      var dy = (this.to.y - this.from.y);
+      var edgeSegmentLength = Math.sqrt(dx * dx + dy * dy);
+
+      var fromBorderDist = this.from.distanceToBorder(ctx, angle + Math.PI);
+      var fromBorderPoint = (edgeSegmentLength - fromBorderDist) / edgeSegmentLength;
+      controlnodeFromPos = {};
+      controlnodeFromPos.x = (fromBorderPoint) * this.from.x + (1 - fromBorderPoint) * this.to.x;
+      controlnodeFromPos.y = (fromBorderPoint) * this.from.y + (1 - fromBorderPoint) * this.to.y;
     }
 
-    return {from:{x:xFrom,y:yFrom},to:{x:xTo,y:yTo}};
+    return controlnodeFromPos;
+  };
+
+  /**
+   * this calculates the position of the control nodes on the edges of the parent nodes.
+   *
+   * @param ctx
+   * @returns {{from: {x: number, y: number}, to: {x: *, y: *}}}
+   */
+  Edge.prototype.getControlNodeToPosition = function(ctx) {
+    // draw arrow head
+    var controlnodeFromPos,controlnodeToPos;
+    if (this.options.smoothCurves.enabled == true) {
+      controlnodeToPos = this._findBorderPosition(false, ctx);
+    }
+    else {
+      var angle = Math.atan2((this.to.y - this.from.y), (this.to.x - this.from.x));
+      var dx = (this.to.x - this.from.x);
+      var dy = (this.to.y - this.from.y);
+      var edgeSegmentLength = Math.sqrt(dx * dx + dy * dy);
+      var toBorderDist = this.to.distanceToBorder(ctx, angle);
+      var toBorderPoint = (edgeSegmentLength - toBorderDist) / edgeSegmentLength;
+
+      controlnodeToPos = {};
+      controlnodeToPos.x = (1 - toBorderPoint) * this.from.x + toBorderPoint * this.to.x;
+      controlnodeToPos.y = (1 - toBorderPoint) * this.from.y + toBorderPoint * this.to.y;
+    }
+
+    return controlnodeToPos;
   };
 
   module.exports = Edge;
@@ -29971,6 +29990,12 @@ return /******/ (function(modules) { // webpackBootstrap
         dy = node2.y - node1.y;
         distance = Math.sqrt(dx * dx + dy * dy);
 
+        // same condition as BarnesHut, making sure nodes are never 100% overlapping.
+        if (distance == 0) {
+          distance = 0.1*Math.random();
+          dx = distance;
+        }
+
         minimumDistance = (combinedClusterSize == 0) ? nodeDistance : (nodeDistance * (1 + combinedClusterSize * this.constants.clustering.distanceAmplification));
         var a = a_base / minimumDistance;
         if (distance < 2 * minimumDistance) {
@@ -29980,13 +30005,13 @@ return /******/ (function(modules) { // webpackBootstrap
           else {
             repulsingForce = a * distance + b; // linear approx of  1 / (1 + Math.exp((distance / minimumDistance - 1) * steepness))
           }
+
           // amplify the repulsion for clusters.
           repulsingForce *= (combinedClusterSize == 0) ? 1 : 1 + combinedClusterSize * this.constants.clustering.forceAmplification;
           repulsingForce = repulsingForce / Math.max(distance,0.01*minimumDistance);
 
           fx = dx * repulsingForce;
           fy = dy * repulsingForce;
-
           node1.fx -= fx;
           node1.fy -= fy;
           node2.fx += fx;
@@ -33239,11 +33264,11 @@ return /******/ (function(modules) { // webpackBootstrap
     this._unselectAll(true);
     this.freezeSimulation = true;
 
-    var locale = this.constants.locales[this.constants.locale];
-
     if (this.boundFunction) {
       this.off('select', this.boundFunction);
     }
+
+    var locale = this.constants.locales[this.constants.locale];
 
     this._unselectAll();
     this.forceAppendSelection = false;
@@ -33272,10 +33297,10 @@ return /******/ (function(modules) { // webpackBootstrap
     this.manipulationDiv.appendChild(this.manipulationDOM['descriptionSpan']);
 
     // bind the icon
-    var me = this; // we use me so we don't have to use bind(this). If we use bind, we cannot clean up after it.
-    this.manipulationDOM['backSpan'].onclick = me._createManipulatorBar;
+    this.manipulationDOM['backSpan'].onclick = this._createManipulatorBar.bind(this);
 
     // we use the boundFunction so we can reference it when we unbind it from the "select" event.
+    var me = this;
     this.boundFunction = me._handleConnect;
     this.on('select', this.boundFunction);
 
@@ -33387,14 +33412,22 @@ return /******/ (function(modules) { // webpackBootstrap
     this._redraw();
   };
 
+
+  /**
+   *
+   * @param pointer
+   * @private
+   */
   exports._releaseControlNode = function(pointer) {
     var newNode = this._getNodeAt(pointer);
     if (newNode !== null) {
       if (this.edgeBeingEdited.controlNodes.from.selected == true) {
+        this.edgeBeingEdited._restoreControlNodes();
         this._editEdge(newNode.id, this.edgeBeingEdited.to.id);
         this.edgeBeingEdited.controlNodes.from.unselect();
       }
       if (this.edgeBeingEdited.controlNodes.to.selected == true) {
+        this.edgeBeingEdited._restoreControlNodes();
         this._editEdge(this.edgeBeingEdited.from.id, newNode.id);
         this.edgeBeingEdited.controlNodes.to.unselect();
       }
@@ -34070,36 +34103,24 @@ return /******/ (function(modules) { // webpackBootstrap
     }
   };
 
+
+
   /**
-   * this function allocates nodes in levels based on the recursive branching from the largest hubs.
+   * this function allocates nodes in levels based on the direction of the edges
    *
    * @param hubsize
    * @private
    */
   exports._determineLevelsDirected = function() {
-    var nodeId, node;
+    var nodeId, node, firstNode;
+    var minLevel = 10000;
 
     // set first node to source
-    for (nodeId in this.nodes) {
-      if (this.nodes.hasOwnProperty(nodeId)) {
-        this.nodes[nodeId].level = 10000;
-        break;
-      }
-    }
+    firstNode = this.nodes[this.nodeIndices[0]];
+    firstNode.level = minLevel;
+    this._setLevelDirected(minLevel,firstNode.edges,firstNode.id);
 
-    // branch from hubs
-    for (nodeId in this.nodes) {
-      if (this.nodes.hasOwnProperty(nodeId)) {
-        node = this.nodes[nodeId];
-        if (node.level == 10000) {
-          this._setLevelDirected(10000,node.edges,node.id);
-        }
-      }
-    }
-
-
-    // branch from hubs
-    var minLevel = 10000;
+    // get the minimum level
     for (nodeId in this.nodes) {
       if (this.nodes.hasOwnProperty(nodeId)) {
         node = this.nodes[nodeId];
@@ -34107,7 +34128,7 @@ return /******/ (function(modules) { // webpackBootstrap
       }
     }
 
-    // branch from hubs
+    // subtract the minimum from the set so we have a range starting from 0
     for (nodeId in this.nodes) {
       if (this.nodes.hasOwnProperty(nodeId)) {
         node = this.nodes[nodeId];
@@ -34213,7 +34234,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
   /**
-   * this function is called recursively to enumerate the barnches of the largest hubs and give each node a level.
+   * this function is called recursively to enumerate the branched of the first node and give each node a level based on edge direction
    *
    * @param level
    * @param edges
