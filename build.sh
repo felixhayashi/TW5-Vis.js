@@ -26,12 +26,6 @@ mkdir -p $distPath
 mkdir $distPath/tiddlers
 
 #====================================================================
-printf "Download vis.js\n"
-#====================================================================
-
-# -
-
-#====================================================================
 printf "compile and copy images...\n"
 #====================================================================
 
@@ -92,7 +86,7 @@ module-type: library
 \*/'
 
 # uglifyied content; redirect stdin so its not closed by npm command
-body=$(uglifyjs $visSrcPath/vis.js < /dev/null)
+body=$(uglifyjs $visSrcPath/vis.js --comments < /dev/null)
 #body=$(cat $visSrcPath/vis.js) # uncomment for no compression
 
 printf "%s\n\n%s\n" "$header" "$body" > $distPath/vis.js

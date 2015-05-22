@@ -1,8 +1,8 @@
 {
   "title": "$:/plugins/felixhayashi/vis",
-  "description": "vis.js plugin for TiddlyWiki5",
+  "description": "Visjs - A dynamic, browser based visualization library",
   "author": "Felix Küppers",
-  "version": "3.10.0",
+  "version": "3.12.0",
   "core-version": ">=5.0.0",
   "source": "https://github.com/felixhayashi/TW5-Vis.js",
   "type": "application/json",
