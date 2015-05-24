@@ -7,7 +7,7 @@
 
 pluginPrefix="$:/plugins/felixhayashi/vis" # prefix for all tiddlers of this plugin
 distPath="dist/felixhayashi/vis/"          # output path
-visSrcPath="src/vis/"                      # input path
+visSrcPath="src/vis/dist"                  # input path
 images=($(cd $visSrcPath; echo img/*/*;))  # array of vis-images relative to css dir
 
 #####################################################################
