@@ -7,8 +7,9 @@
 
 pluginPrefix="$:/plugins/felixhayashi/vis" # prefix for all tiddlers of this plugin
 distPath="dist/felixhayashi/vis/"          # output path
-visSrcPath="src/vis/"                      # input path
-images=($(cd $visSrcPath; echo img/*/*;))  # array of vis-images relative to css dir
+visSrcPath="src/vis/dist"                  # input path
+imgSrcPath="src/"                          # base img folder path
+images=($(cd $imgSrcPath; echo img/*/*;))  # array of vis-images relative to css dir
 
 #####################################################################
 # Program
@@ -38,7 +39,7 @@ for((i = 0; i < $imagesLength; i++)); do
   # inject meta and content and place it into dist folder
   {
     printf "title: %s\ntype:%s\n\n" "${pluginPrefix}/${images[i]}" "image/png"
-    base64 -w 0 $visSrcPath/${images[i]}
+    base64 -w 0 $imgSrcPath/${images[i]}
   } >> $distPath/tiddlers/$imgName
 
 done
