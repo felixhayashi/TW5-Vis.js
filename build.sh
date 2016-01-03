@@ -5,10 +5,11 @@
 # Script Configuration
 #####################################################################
 
-pluginPrefix="$:/plugins/felixhayashi/vis" # prefix for all tiddlers of this plugin
-distPath="dist/felixhayashi/vis/"          # output path
-visSrcPath="src/vis/"                      # input path
-images=($(cd $visSrcPath; echo img/*/*;))  # array of vis-images relative to css dir
+pluginPrefix="$:/plugins/felixhayashi/vis"  # prefix for all tiddlers of this plugin
+distPath="dist/felixhayashi/vis/"           # output path
+visSrcPath="src/vis/dist/"                  # input path
+imgSrcPath="src/"                           # customised vis-images path
+images=($(cd "$imgSrcPath"; echo img/*/*;)) # array of customised vis-images
 
 #####################################################################
 # Program
@@ -38,7 +39,7 @@ for((i = 0; i < $imagesLength; i++)); do
   # inject meta and content and place it into dist folder
   {
     printf "title: %s\ntype:%s\n\n" "${pluginPrefix}/${images[i]}" "image/png"
-    base64 -w 0 $visSrcPath/${images[i]}
+    base64 -w 0 $imgSrcPath/${images[i]}
   } >> $distPath/tiddlers/$imgName
 
 done
@@ -83,7 +84,29 @@ type: application/javascript
 module-type: library
 
 @preserve
-\*/'
+\*/
+
+/*** TO AVOID STRANGE LIB ERRORS FROM BUBBLING UP *****************/
+
+if($tw.boot.tasks.trapErrors) {
+
+  var defaultHandler = window.onerror;
+  window.onerror = function(errorMsg, url, lineNumber) {
+    if(errorMsg.indexOf("NS_ERROR_NOT_AVAILABLE") !== -1
+       && url == "$:/plugins/felixhayashi/vis/vis.js") {
+      console.error("Strange firefox related vis.js error (see #125)",
+                    arguments);
+    } else if(errorMsg.indexOf("Permission denied to access property") !== -1) {
+      console.error("Strange firefox related vis.js error (see #163)",
+                    arguments);
+    } else if(defaultHandler) {
+      defaultHandler.apply(this, arguments);
+    }
+  }
+}
+
+/******************************************************************/
+'
 
 # uglifyied content; redirect stdin so its not closed by npm command
 body=$(uglifyjs $visSrcPath/vis.js --comments < /dev/null)
