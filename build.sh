@@ -84,7 +84,29 @@ type: application/javascript
 module-type: library
 
 @preserve
-\*/'
+\*/
+
+/*** TO AVOID STRANGE LIB ERRORS FROM BUBBLING UP *****************/
+
+if($tw.boot.tasks.trapErrors) {
+
+  var defaultHandler = window.onerror;
+  window.onerror = function(errorMsg, url, lineNumber) {
+    if(errorMsg.indexOf("NS_ERROR_NOT_AVAILABLE") !== -1
+       && url == "$:/plugins/felixhayashi/vis/vis.js") {
+      console.error("Strange firefox related vis.js error (see #125)",
+                    arguments);
+    } else if(errorMsg.indexOf("Permission denied to access property") !== -1) {
+      console.error("Strange firefox related vis.js error (see #163)",
+                    arguments);
+    } else if(defaultHandler) {
+      defaultHandler.apply(this, arguments);
+    }
+  }
+}
+
+/******************************************************************/
+'
 
 # uglifyied content; redirect stdin so its not closed by npm command
 body=$(uglifyjs $visSrcPath/vis.js --comments < /dev/null)
