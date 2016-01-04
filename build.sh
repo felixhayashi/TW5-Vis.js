@@ -10,6 +10,7 @@ distPath="dist/felixhayashi/vis/"           # output path
 visSrcPath="src/vis/dist/"                  # input path
 imgSrcPath="src/"                           # customised vis-images path
 images=($(cd "$imgSrcPath"; echo img/*/*;)) # array of customised vis-images
+compress=0
 
 #####################################################################
 # Program
@@ -51,22 +52,24 @@ for((i = 0; i < $imagesLength; i++)); do
 done
 
 #====================================================================
-printf "minify and copy styles...\n"
+printf "replace urls...\n"
 #====================================================================
 
-# replace urls and move file to dist
-gawk -v mpath="$pluginPrefix" '
-  {
-    pos = match($0, /(.*)[\"'\''](.*)[\"'\''](.*)/, arr);
-    if(pos != 0) print arr[1] "<<datauri \"" mpath "/" arr[2] "\" >>" arr[3]
-    else print
-  }' $visSrcPath/vis.css > $distPath/tiddlers/vis.css.tid
+{
+  perl fixurls.pl "$visSrcPath/vis.css" "$pluginPrefix"
+} > "$distPath/tiddlers/vis.css.tid"
+
+#====================================================================
+printf "minify and copy styles...\n"
+#====================================================================
     
 # header with macro
 header=\
 'title: '${pluginPrefix}/vis.css'
 type: text/vnd.tiddlywiki
-tags: $:/tags/Stylesheet'
+tags: $:/tags/Stylesheet
+
+\rules except list'
 
 macro=\
 '\define datauri(title)
@@ -76,7 +79,15 @@ macro=\
 # uglifyied content; redirect stdin so its not closed by npm command
 body=$(uglifycss $distPath/tiddlers/vis.css.tid < /dev/null)
 
-printf "%s\n\n%s\n\n%s" "$header" "$macro" "$body" > $distPath/tiddlers/vis.css.tid
+if [ $compress == 1 ]; then
+  # uglifyied content; redirect stdin so its not closed by npm command
+  body=$(uglifycss $distPath/tiddlers/vis.css.tid < /dev/null)
+else
+  # just use as is
+  body=$(cat $distPath/tiddlers/vis.css.tid)
+fi
+
+printf "%s\n\n%s\n\n%s" "$header" "$macro" "$body" > "$distPath/tiddlers/vis.css.tid"
 
 #====================================================================
 printf "uglify and copy scripts...\n"
@@ -114,9 +125,13 @@ if($tw.boot.tasks.trapErrors) {
 /******************************************************************/
 '
 
-# uglifyied content; redirect stdin so its not closed by npm command
-body=$(uglifyjs $visSrcPath/vis.js --comments < /dev/null)
-#body=$(cat $visSrcPath/vis.js) # uncomment for no compression
+if [ $compress == 1 ]; then
+  # uglifyied content; redirect stdin so its not closed by npm command
+  body=$(uglifyjs $visSrcPath/vis.js --comments < /dev/null)
+else
+  # just use as is
+  body=$(cat $visSrcPath/vis.js)
+fi
 
 printf "%s\n\n%s\n" "$header" "$body" > $distPath/vis.js
 
