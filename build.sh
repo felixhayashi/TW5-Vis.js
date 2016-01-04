@@ -10,17 +10,17 @@ distPath="dist/felixhayashi/vis/"           # output path
 visSrcPath="src/vis/dist/"                  # input path
 imgSrcPath="src/"                           # customised vis-images path
 images=($(cd "$imgSrcPath"; echo img/*/*;)) # array of customised vis-images
-compress=0
+compress=1                                  # set this to 0 to disable compression of css and js
 
 #####################################################################
 # Program
 #####################################################################
 
 #====================================================================
-printf "Fetch upstream resources...\n"
+#~ printf "Fetch upstream resources...\n"
 #====================================================================
 
-git submodule update --init --recursive
+#~ git submodule update --init --recursive
 
 #====================================================================
 printf "Perform cleanup...\n"

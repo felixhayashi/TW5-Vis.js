@@ -34,7 +34,7 @@ if($tw.boot.tasks.trapErrors) {
  *
  * A dynamic, browser-based visualization library.
  *
- * @version 4.11.0
+ * @version 4.11.1-SNAPSHOT
  * @date    2015-12-18
  *
  * @license
