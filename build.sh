@@ -7,10 +7,11 @@
 
 pluginPrefix="$:/plugins/felixhayashi/vis"  # prefix for all tiddlers of this plugin
 distPath="dist/felixhayashi/vis/"           # output path
-visSrcPath="src/vis/dist/"                  # input path
-imgSrcPath="src/"                           # customised vis-images path
-images=($(cd "$imgSrcPath"; echo img/*/*;)) # array of customised vis-images
-compress=1                                  # set this to 0 to disable compression of css and js
+srcPath="src/"                              # plugin's src path
+visSrcPath="${srcPath}/vis/dist/"           # vis module's dist path
+imgSrcPath="${srcPath}/img/"                # customised vis-images path
+images=($(cd "$imgSrcPath"; echo */*;))     # array of customised vis-images
+compress=0                                  # set this to 0 to disable compression of css and js
 
 #####################################################################
 # Program
@@ -40,14 +41,16 @@ printf "compile and copy images...\n"
 imagesLength=${#images[*]}
 for((i = 0; i < $imagesLength; i++)); do
   
+  twImgPrefix="img/${images[i]}"
+  
   # replace shash with underscore
-  imgName="${images[i]//\//_}.tid";
+  imgName="${twImgPrefix//\//_}.tid";
 
   # inject meta and content and place it into dist folder
   {
-    printf "title: %s\ntype:%s\n\n" "${pluginPrefix}/${images[i]}" "image/png"
-    base64 -w 0 $imgSrcPath/${images[i]}
-  } >> $distPath/tiddlers/$imgName
+    printf "title: %s\ntype:%s\n\n" "${pluginPrefix}/${twImgPrefix}" "image/png"
+    base64 -w 0 "$imgSrcPath/${images[i]}"
+  } >> "${distPath}/tiddlers/${imgName}"
 
 done
 
@@ -101,29 +104,9 @@ type: application/javascript
 module-type: library
 
 @preserve
-\*/
+\*/'
 
-/*** TO AVOID STRANGE LIB ERRORS FROM BUBBLING UP *****************/
-
-if($tw.boot.tasks.trapErrors) {
-
-  var defaultHandler = window.onerror;
-  window.onerror = function(errorMsg, url, lineNumber) {
-    if(errorMsg.indexOf("NS_ERROR_NOT_AVAILABLE") !== -1
-       && url == "$:/plugins/felixhayashi/vis/vis.js") {
-      console.error("Strange firefox related vis.js error (see #125)",
-                    arguments);
-    } else if(errorMsg.indexOf("Permission denied to access property") !== -1) {
-      console.error("Strange firefox related vis.js error (see #163)",
-                    arguments);
-    } else if(defaultHandler) {
-      defaultHandler.apply(this, arguments);
-    }
-  }
-}
-
-/******************************************************************/
-'
+header="$header"$'\n'$'\n'"$(cat $srcPath/extra.js)"
 
 if [ $compress == 1 ]; then
   # uglifyied content; redirect stdin so its not closed by npm command
