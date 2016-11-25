@@ -11,7 +11,7 @@ srcPath="src/"                              # plugin's src path
 visSrcPath="${srcPath}/vis/dist/"           # vis module's dist path
 imgSrcPath="${srcPath}/img/"                # customised vis-images path
 images=($(cd "$imgSrcPath"; echo */*;))     # array of customised vis-images
-compress=0                                  # set this to 0 to disable compression of css and js
+compress=1                                  # set this to 0 to disable compression of css and js
 
 #####################################################################
 # Program
