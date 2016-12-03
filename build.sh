@@ -11,17 +11,17 @@ srcPath="src/"                              # plugin's src path
 visSrcPath="${srcPath}/vis/dist/"           # vis module's dist path
 imgSrcPath="${srcPath}/img/"                # customised vis-images path
 images=($(cd "$imgSrcPath"; echo */*;))     # array of customised vis-images
-compress=0                                  # set this to 0 to disable compression of css and js
+compress=1                                  # set this to 0 to disable compression of css and js
 
 #####################################################################
 # Program
 #####################################################################
 
 #====================================================================
-#~ printf "Fetch upstream resources...\n"
+printf "Fetch upstream resources...\n"
 #====================================================================
 
-#~ git submodule update --init --recursive
+git submodule update --init --recursive
 
 #====================================================================
 printf "Perform cleanup...\n"
@@ -119,10 +119,21 @@ fi
 printf "%s\n\n%s\n" "$header" "$body" > $distPath/vis.js
 
 #====================================================================
+printf "update version information...\n"
+#====================================================================
+
+version="$(cd "$visSrcPath" && git describe --tags $(git rev-list --tags --max-count=1))"
+version=${version:1}
+expr="s/\"version\": \"[^\"]+\"/\"version\": \"$version\"/g"
+
+sed -i -r -e "$expr" "src/plugin.info"
+
+#====================================================================
 printf "copy other stuff...\n"
 #====================================================================
 
 cp src/plugin.info $distPath/plugin.info
 cp src/tiddlers/* $distPath/tiddlers/
+
 
 exit
